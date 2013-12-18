@@ -1419,7 +1419,7 @@ public class QTVideo implements Video, MovieDrawingComplete {
       try {
       	String path = control.getString("path"); //$NON-NLS-1$
       	Video video = new QTVideo(path);
-        VideoType qtType = VideoIO.getVideoType(VideoIO.ENGINE_QUICKTIME, null); //$NON-NLS-1$
+        VideoType qtType = VideoIO.getVideoType(VideoIO.ENGINE_QUICKTIME, null);
         if (qtType!=null)
         	video.setProperty("video_type", qtType); //$NON-NLS-1$
         return video;
