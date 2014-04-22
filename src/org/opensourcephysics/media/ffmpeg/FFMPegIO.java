@@ -40,13 +40,19 @@ public class FFMPegIO extends VideoIO {
 					"flv", new String[] { "flv" }); //$NON-NLS-1$ //$NON-NLS-2$
 			VideoIO.addVideoType(new FFMPegVideoType(filter));
 			ResourceLoader.addExtractExtension("flv"); //$NON-NLS-1$
+			// 3GP
+			filter = new VideoFileFilter("3gp", new String[] { "3gp" }); //$NON-NLS-1$ //$NON-NLS-2$
+			FFMPegVideoType vidType = new FFMPegVideoType(filter);
+			vidType.setRecordable(false);
+			VideoIO.addVideoType(vidType);
+			ResourceLoader.addExtractExtension("3gp"); //$NON-NLS-1$
 			// WMV
 			filter = new VideoFileFilter("asf", new String[] { "wmv" }); //$NON-NLS-1$ //$NON-NLS-2$
 			VideoIO.addVideoType(new FFMPegVideoType(filter));
 			ResourceLoader.addExtractExtension("wmv"); //$NON-NLS-1$
 			// DV
 			filter = new VideoFileFilter("dv", new String[] { "dv" }); //$NON-NLS-1$ //$NON-NLS-2$
-			FFMPegVideoType vidType = new FFMPegVideoType(filter);
+			vidType = new FFMPegVideoType(filter);
 			vidType.setRecordable(false);
 			VideoIO.addVideoType(vidType);
 			ResourceLoader.addExtractExtension("dv"); //$NON-NLS-1$
@@ -75,7 +81,7 @@ public class FFMPegIO extends VideoIO {
 			VideoIO.addVideoType(vidType);
 			ResourceLoader.addExtractExtension("mod"); //$NON-NLS-1$
 			// OGG
-			filter = new VideoFileFilter("ogg", new String[] { "ogg" }); //$NON-NLS-1$ //$NON-NLS-2$
+			filter = new VideoFileFilter("ogg", new String[] { "ogg", "ogv" }); //$NON-NLS-1$ //$NON-NLS-2$
 			vidType = new FFMPegVideoType(filter);
 			vidType.setRecordable(false);
 			VideoIO.addVideoType(vidType);
