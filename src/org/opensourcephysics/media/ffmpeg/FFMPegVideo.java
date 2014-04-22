@@ -528,7 +528,6 @@ public class FFMPegVideo extends VideoAdapter {
 		Pointer<AVFrame> tmpFrame = alloc_frame();
 		Pointer<Integer> got_frame = Pointer.allocateInt();
 		while (av_read_frame(tmpContext, tmpPacket) >= 0) {
-			Pointer<AVPacket> origPacket = tmpPacket;
 			if (VideoIO.isCanceled()) {
 				failDetectTimer.stop();
 				firePropertyChange("progress", fileName, null); //$NON-NLS-1$
@@ -549,37 +548,29 @@ public class FFMPegVideo extends VideoAdapter {
 				throw new IOException("Canceled by user"); //$NON-NLS-1$
 			}
 			if (isVideoPacket(tmpPacket)) {
-				int offset = 0;
 				int bytesDecoded;
-				do {
-					/* decode video frame */
-					bytesDecoded = avcodec_decode_video2(cContext, tmpFrame,
-							got_frame, tmpPacket);
-					// check for errors
-					if (bytesDecoded < 0)
-						break;
-					offset += bytesDecoded;
-					if (got_frame.get() != 0) {
-						if (keyTimeStamp == Long.MIN_VALUE
-								|| isKeyPacket(tmpPacket)) {
-							keyTimeStamp = tmpFrame.get().pkt_pts();
-						}
-						if (startTimeStamp == Long.MIN_VALUE) {
-							startTimeStamp = tmpFrame.get().pkt_pts();
-						}
-						frameTimeStamps.put(frameNr, tmpFrame.get().pkt_pts());
-						seconds.add((double) ((tmpFrame.get().pkt_pts() - startTimeStamp) * value(timebase)));
-						keyTimeStamps.put(frameNr, keyTimeStamp);
-						firePropertyChange("progress", fileName, frameNr); //$NON-NLS-1$
-						frameNr++;
+				/* decode video frame */
+				bytesDecoded = avcodec_decode_video2(cContext, tmpFrame,
+						got_frame, tmpPacket);
+				// check for errors
+				if (bytesDecoded < 0)
+					break;
+				if (got_frame.get() != 0) {
+					if (keyTimeStamp == Long.MIN_VALUE
+							|| isKeyPacket(tmpPacket)) {
+						keyTimeStamp = tmpFrame.get().pkt_pts();
 					}
-					offset += bytesDecoded;
-					tmpPacket.get().data(
-							(Pointer<Byte>) Pointer.pointerToAddress(offset));
-					tmpPacket.get().size(tmpPacket.get().size() - bytesDecoded);
-				} while (tmpPacket.get().size() > 0);
+					if (startTimeStamp == Long.MIN_VALUE) {
+						startTimeStamp = tmpFrame.get().pkt_pts();
+					}
+					frameTimeStamps.put(frameNr, tmpFrame.get().pkt_pts());
+					seconds.add((double) ((tmpFrame.get().pkt_pts() - startTimeStamp) * value(timebase)));
+					keyTimeStamps.put(frameNr, keyTimeStamp);
+					firePropertyChange("progress", fileName, frameNr); //$NON-NLS-1$
+					frameNr++;
+				}
 			}
-			av_free_packet(origPacket);
+			av_free_packet(tmpPacket);
 		}
 		/* flush cached frames */
 		tmpPacket.get().data(null);
@@ -1034,26 +1025,21 @@ public class FFMPegVideo extends VideoAdapter {
 	 * @return true if successfully loaded
 	 */
 	private boolean loadPacket() {
-		int offset = 0;
-		int size = packet.get().size();
 		Pointer<Integer> got_picture = Pointer.allocateInt();
 		Pointer<AVFrame> frame = AvcodecLibrary.alloc_frame();
 		if (frame == null)
 			return false;
 		try {
-			while (offset < size) {
-				// decode the packet into the picture
-				int bytesDecoded = AvcodecLibrary.avcodec_decode_video2(
-						cContext, frame, got_picture, packet);
-				// check for errors
-				if (bytesDecoded < 0)
-					return false;
+			// decode the packet into the picture
+			int bytesDecoded = AvcodecLibrary.avcodec_decode_video2(
+					cContext, frame, got_picture, packet);
+			// check for errors
+			if (bytesDecoded < 0)
+				return false;
 
-				offset += bytesDecoded;
-				if (got_picture.getInt() == 1) {
-					copyToPicture(frame);
-					return true;
-				}
+			if (got_picture.getInt() == 1) {
+				copyToPicture(frame);
+				return true;
 			}
 			return true;
 		} finally {
