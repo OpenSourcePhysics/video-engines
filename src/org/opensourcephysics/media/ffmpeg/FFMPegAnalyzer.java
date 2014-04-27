@@ -6,6 +6,7 @@ import static org.ffmpeg.avcodec.AvcodecLibrary.av_free_packet;
 import static org.ffmpeg.avcodec.AvcodecLibrary.av_init_packet;
 import static org.ffmpeg.avcodec.AvcodecLibrary.avcodec_decode_video2;
 import static org.ffmpeg.avcodec.AvcodecLibrary.avcodec_find_decoder;
+import static org.ffmpeg.avcodec.AvcodecLibrary.avcodec_open2;
 import static org.ffmpeg.avformat.AvformatLibrary.av_find_best_stream;
 import static org.ffmpeg.avformat.AvformatLibrary.av_read_frame;
 import static org.ffmpeg.avformat.AvformatLibrary.avformat_close_input;
@@ -114,6 +115,8 @@ public class FFMPegAnalyzer {
 		if (!analyzed)
 			analyze();
 		double[] startTimes = new double[frameTimeStamps.size()];
+		if(startTimes.length < 1)
+			return startTimes;
 		startTimes[0] = 0;
 		for (int i = 1; i < startTimes.length; i++) {
 			startTimes[i] = seconds.get(i) * 1000;
@@ -166,6 +169,11 @@ public class FFMPegAnalyzer {
 			if (codec == null) {
 				throw new IOException(
 						"unable to find codec video stream in " + path); //$NON-NLS-1$			
+			}
+			// check that coder opens
+			if (avcodec_open2(cContext, codec, null) < 0) {
+				throw new IOException(
+						"unable to open video decoder for " + path); //$NON-NLS-1$
 			}
 
 			packet = Pointer.allocate(AVPacket.class);
@@ -280,6 +288,10 @@ public class FFMPegAnalyzer {
 			if (context != null) {
 				avformat_close_input(context.getReference());
 				context = null;
+			}
+			if (converter != null) {
+				converter.dispose();
+				converter = null;
 			}
 		}
 		analyzed = true;

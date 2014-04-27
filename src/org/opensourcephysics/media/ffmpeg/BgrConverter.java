@@ -112,8 +112,7 @@ public class BgrConverter {
 		return new BufferedImage(colorModel, wr, false, null);
 	}
 
-	@Override
-	public void finalize() {
+	public void dispose() {
 		if (rpicture != null) {
 			if(rpicture.getValidElements() > 0)
 				av_freep(rpicture);

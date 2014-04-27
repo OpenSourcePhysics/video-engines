@@ -290,6 +290,9 @@ public class FFMPegVideo extends VideoAdapter {
 	 */
 	public void dispose() {
 		super.dispose();
+		if(converter != null) {
+			converter.dispose();
+		}
 		if (cContext != null) {
 			AvcodecLibrary.avcodec_close(cContext);
 			cContext = null;
