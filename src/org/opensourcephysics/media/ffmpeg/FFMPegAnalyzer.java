@@ -12,6 +12,7 @@ import static org.ffmpeg.avformat.AvformatLibrary.av_read_frame;
 import static org.ffmpeg.avformat.AvformatLibrary.avformat_close_input;
 import static org.ffmpeg.avformat.AvformatLibrary.avformat_find_stream_info;
 import static org.ffmpeg.avformat.AvformatLibrary.avformat_open_input;
+import static org.ffmpeg.avformat.AvformatLibrary.av_register_all;
 import static org.ffmpeg.avutil.AvutilLibrary.av_free;
 import static org.ffmpeg.avutil.AvutilLibrary.av_image_copy;
 
@@ -139,6 +140,7 @@ public class FFMPegAnalyzer {
 		Pointer<AVFrame> frame = null;
 		Pointer<Integer> got_frame = null;
 		try {
+			av_register_all();
 			// set up frame data using temporary container
 			Pointer<Pointer<AVFormatContext>> pfmt_ctx = Pointer
 					.allocatePointer(AVFormatContext.class);

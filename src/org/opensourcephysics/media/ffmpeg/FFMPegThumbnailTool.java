@@ -8,6 +8,9 @@ import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
+
+import javax.imageio.ImageIO;
 
 import org.opensourcephysics.media.core.VideoIO;
 import org.opensourcephysics.tools.ResourceLoader;
@@ -84,7 +87,7 @@ public class FFMPegThumbnailTool {
       g.drawImage(image, 0, 0, null);
       
       if (overlay!=null) {
-	      g.scale(1/factor, 1/factor); // draw overlay at full scale
+	    g.scale(1/factor, 1/factor); // draw overlay at full scale
 	      
         // determine the inset and translate the image
         Rectangle2D bounds = new Rectangle2D.Float(0, 0, overlay.getWidth(), overlay.getHeight());
@@ -104,14 +107,15 @@ public class FFMPegThumbnailTool {
   	dim = dimension;
 		finished = false;
 		frameNumber = 0;
-//    try {
-//    	String imageFile = "C:/Program Files (x86)/Tracker/tracker_icon.png";
-//    	overlay = ImageIO.read(new File(imageFile));
-//	  } 
-//	  catch (IOException e) {
-//	      e.printStackTrace();
-//	      throw new RuntimeException("Could not open file");
-//	  }
+    try {
+    	URL imageURL = FFMPegThumbnailTool.class.getResource("../../resources/media/images/tracker_icon.png");
+    	overlay = ImageIO.read(imageURL);
+	  } 
+	  catch (IllegalArgumentException e) { } 
+	  catch (IOException e) {
+	      e.printStackTrace();
+	      throw new RuntimeException("Could not open file");
+	  }
 
 	}
 		
@@ -119,4 +123,10 @@ public class FFMPegThumbnailTool {
 		return finished;
 	}
 		
+  public static void main(String[] args) {
+	  if(args == null || args.length != 2) {
+		  System.err.println("usage: FFMPegThumbnailTool <Videofile> <Thumbnailfile>");
+	  }
+	  createThumbnailFile(new Dimension(640,480),args[0], args[1]);
+  }
 }
