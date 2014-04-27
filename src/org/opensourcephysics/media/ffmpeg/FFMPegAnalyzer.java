@@ -166,6 +166,8 @@ public class FFMPegAnalyzer {
 				throw new IOException("unable to find video stream in " + path); //$NON-NLS-1$			
 			}
 			stream = context.get().streams().get(streamIndex);
+			timebase = copy(stream.get().time_base());
+			
 			cContext = stream.get().codec();
 			codec = avcodec_find_decoder(cContext.get().codec_id());
 			if (codec == null) {
