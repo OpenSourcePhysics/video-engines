@@ -1,21 +1,18 @@
 package org.opensourcephysics.media.ffmpeg;
 
-import static org.ffmpeg.avcodec.AvcodecLibrary.AV_PKT_FLAG_KEY;
-import static org.ffmpeg.avcodec.AvcodecLibrary.alloc_frame;
 import static org.ffmpeg.avcodec.AvcodecLibrary.av_free_packet;
 import static org.ffmpeg.avcodec.AvcodecLibrary.av_init_packet;
-import static org.ffmpeg.avcodec.AvcodecLibrary.avcodec_decode_video2;
 import static org.ffmpeg.avcodec.AvcodecLibrary.avcodec_find_decoder;
 import static org.ffmpeg.avcodec.AvcodecLibrary.avcodec_open2;
-import static org.ffmpeg.avformat.AvformatLibrary.av_find_best_stream;
 import static org.ffmpeg.avformat.AvformatLibrary.av_read_frame;
-import static org.ffmpeg.avformat.AvformatLibrary.avformat_close_input;
 import static org.ffmpeg.avformat.AvformatLibrary.avformat_find_stream_info;
 import static org.ffmpeg.avformat.AvformatLibrary.avformat_open_input;
 import static org.ffmpeg.avutil.AvutilLibrary.av_free;
 import static org.ffmpeg.avutil.AvutilLibrary.av_freep;
-import static org.ffmpeg.avutil.AvutilLibrary.av_image_alloc;
 import static org.ffmpeg.avutil.AvutilLibrary.av_image_copy;
+import static org.opensourcephysics.media.ffmpeg.FFMPegAnalyzer.copy;
+import static org.opensourcephysics.media.ffmpeg.FFMPegAnalyzer.isKeyPacket;
+import static org.opensourcephysics.media.ffmpeg.FFMPegAnalyzer.isVideoPacket;
 
 import java.awt.Dimension;
 import java.awt.Frame;
@@ -25,7 +22,6 @@ import java.awt.image.BufferedImage;
 import java.beans.PropertyChangeListener;
 import java.io.IOException;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -45,10 +41,6 @@ import org.ffmpeg.avformat.AvformatLibrary;
 import org.ffmpeg.avutil.AVFrame;
 import org.ffmpeg.avutil.AVRational;
 import org.ffmpeg.avutil.AvutilLibrary;
-import org.ffmpeg.avutil.AvutilLibrary.AVMediaType;
-import org.ffmpeg.avutil.AvutilLibrary.AVPixelFormat;
-import org.ffmpeg.swscale.SwscaleLibrary;
-import org.ffmpeg.swscale.SwscaleLibrary.SwsContext;
 import org.opensourcephysics.controls.OSPLog;
 import org.opensourcephysics.controls.XML;
 import org.opensourcephysics.controls.XMLControl;
@@ -70,11 +62,10 @@ public class FFMPegVideo extends VideoAdapter {
 	int streamIndex = -1;
 	Pointer<AVCodecContext> cContext;
 	Pointer<AVCodec> codec;
-	Pointer<SwsContext> resampler;
 	Pointer<AVPacket> packet;
-	Pointer<Pointer<Byte>> picture = Pointer.allocatePointers(Byte.class, 4), rpicture;
-	Pointer<Integer> picture_linesize = Pointer.allocateInts(4), rpicture_linesize;
-	int picture_bufsize, rpicture_bufsize;
+	Pointer<Pointer<Byte>> picture = Pointer.allocatePointers(Byte.class, 4);
+	Pointer<Integer> picture_linesize = Pointer.allocateInts(4);
+	int picture_bufsize;
 	Pointer<AVStream> stream;
 	AVRational timebase;
 	BgrConverter converter;
@@ -313,18 +304,9 @@ public class FFMPegVideo extends VideoAdapter {
 			picture = null;
 			packet = null;
 		}
-		if (rpicture != null) {
-			if(rpicture.getValidElements() > 0)
-				av_freep(rpicture);
-			rpicture = null;
-		}
 		if (context != null) {
 			AvformatLibrary.avformat_close_input(context.getReference());
 			context = null;
-		}
-		if (resampler != null) {
-			SwscaleLibrary.sws_freeContext(resampler);
-			resampler = null;
 		}
 	}
 
@@ -423,7 +405,6 @@ public class FFMPegVideo extends VideoAdapter {
 	 *            the video file name
 	 * @throws IOException
 	 */
-	@SuppressWarnings({ "deprecation", "unchecked" })
 	private void load(String fileName) throws IOException {
 		Resource res = ResourceLoader.getResource(fileName);
 		if (res == null) {
@@ -448,15 +429,29 @@ public class FFMPegVideo extends VideoAdapter {
 			throw new IOException("unable to find stream info in " + fileName); //$NON-NLS-1$
 		}
 
-		// find the first video stream in the container
-		int ret = av_find_best_stream(context, AVMediaType.AVMEDIA_TYPE_VIDEO,
-				-1, -1, null, 0);
-		streamIndex = -1;
-		if (ret < 0) {
+		// set up frame data using FFMPegAnalyzer object
+		FFMPegAnalyzer analyzer = null;
+		failDetectTimer.start();
+		frameNr = prevFrameNr = 0;
+		try {
+			analyzer = new FFMPegAnalyzer(path, support);
+			streamIndex = analyzer.getVideoStreamIndex();
+			frameTimeStamps = analyzer.getFrameTimeStamps();
+			keyTimeStamps = analyzer.getKeyTimeStamps();
+
+			// set initial video clip properties
+			frameCount = frameTimeStamps.size();
+			startFrameNumber = 0;
+			endFrameNumber = frameCount - 1;
+			
+			// create startTimes array
+			startTimes = analyzer.getStartTimes();
+		} catch(IOException e) {
+			failDetectTimer.stop();
 			dispose();
-			throw new IOException("unable to find video stream in " + fileName); //$NON-NLS-1$			
+			throw new IOException(e.getLocalizedMessage());
 		}
-		streamIndex = ret;
+		
 		stream = context.get().streams().get(streamIndex);
 		/* find decoder for the stream */
 		cContext = stream.get().codec();
@@ -466,19 +461,22 @@ public class FFMPegVideo extends VideoAdapter {
 			throw new IOException(
 					"unable to find codec video stream in " + fileName); //$NON-NLS-1$			
 		}
-
+		
 		// check that coder opens
-		if ((ret = avcodec_open2(cContext, codec, null)) < 0) {
+		if (avcodec_open2(cContext, codec, null) < 0) {
 			dispose();
 			throw new IOException(
 					"unable to open video decoder for " + fileName); //$NON-NLS-1$
 		}
 		timebase = copy(stream.get().time_base());
 
-		// check that a video stream was found
-		if (streamIndex == -1) {
+		// throw IOException if no frames were loaded
+		if (frameTimeStamps.size() == 0) {
+			firePropertyChange("progress", fileName, null); //$NON-NLS-1$
+			failDetectTimer.stop();
 			dispose();
-			throw new IOException("no video stream found in " + fileName); //$NON-NLS-1$
+			// VideoIO.setCanceled(true);
+			throw new IOException("packets loaded but no complete picture"); //$NON-NLS-1$
 		}
 
 		// set properties
@@ -490,140 +488,6 @@ public class FFMPegVideo extends VideoAdapter {
 		} else {
 			// else path is relative to user directory
 			setProperty("path", XML.getRelativePath(fileName)); //$NON-NLS-1$
-		}
-
-		// set up frame data using temporary container
-		Pointer<Pointer<AVFormatContext>> ptmpfmt_ctx = Pointer
-				.allocatePointer(AVFormatContext.class);
-		if (avformat_open_input(ptmpfmt_ctx, Pointer.pointerToCString(path),
-				null, null) < 0) {
-			dispose();
-			throw new IOException("unable to open " + fileName); //$NON-NLS-1$
-		}
-		Pointer<AVFormatContext> tmpContext = ptmpfmt_ctx.get();
-		Pointer<AVStream> tempStream = tmpContext.get().streams()
-				.get(streamIndex);
-		Pointer<AVCodecContext> tmpcContext = tempStream.get().codec();
-		Pointer<AVCodec> tmpCodec = avcodec_find_decoder(tmpcContext.get()
-				.codec_id());
-		if (tmpCodec == null) {
-			dispose();
-			throw new IOException(
-					"unable to find codec video stream in " + fileName); //$NON-NLS-1$			
-		}
-
-		Pointer<AVPacket> tmpPacket = Pointer.allocate(AVPacket.class);
-		av_init_packet(tmpPacket);
-		tmpPacket.get().data(null);
-		tmpPacket.get().size(0);
-
-		long keyTimeStamp = Long.MIN_VALUE;
-		long startTimeStamp = Long.MIN_VALUE;
-		ArrayList<Double> seconds = new ArrayList<Double>();
-		firePropertyChange("progress", fileName, 0); //$NON-NLS-1$
-		frameNr = prevFrameNr = 0;
-		failDetectTimer.start();
-
-		// step thru container and find all video frames
-		Pointer<AVFrame> tmpFrame = alloc_frame();
-		Pointer<Integer> got_frame = Pointer.allocateInt();
-		while (av_read_frame(tmpContext, tmpPacket) >= 0) {
-			if (VideoIO.isCanceled()) {
-				failDetectTimer.stop();
-				firePropertyChange("progress", fileName, null); //$NON-NLS-1$
-				// clean up temporary objects
-				AvcodecLibrary.avcodec_close(tmpcContext);
-				tmpcContext = null;
-				tempStream = null;
-				if (tmpFrame != null) {
-					av_free(tmpFrame);
-					tmpFrame = null;
-				}
-				tmpPacket = null;
-				if (tmpContext != null) {
-					avformat_close_input(tmpContext.getReference());
-					tmpContext = null;
-				}
-				dispose();
-				throw new IOException("Canceled by user"); //$NON-NLS-1$
-			}
-			if (isVideoPacket(tmpPacket)) {
-				int bytesDecoded;
-				/* decode video frame */
-				bytesDecoded = avcodec_decode_video2(cContext, tmpFrame,
-						got_frame, tmpPacket);
-				// check for errors
-				if (bytesDecoded < 0)
-					break;
-				if (got_frame.get() != 0) {
-					if (keyTimeStamp == Long.MIN_VALUE
-							|| isKeyPacket(tmpPacket)) {
-						keyTimeStamp = tmpFrame.get().pkt_pts();
-					}
-					if (startTimeStamp == Long.MIN_VALUE) {
-						startTimeStamp = tmpFrame.get().pkt_pts();
-					}
-					frameTimeStamps.put(frameNr, tmpFrame.get().pkt_pts());
-					seconds.add((double) ((tmpFrame.get().pkt_pts() - startTimeStamp) * value(timebase)));
-					keyTimeStamps.put(frameNr, keyTimeStamp);
-					firePropertyChange("progress", fileName, frameNr); //$NON-NLS-1$
-					frameNr++;
-				}
-			}
-			av_free_packet(tmpPacket);
-		}
-		/* flush cached frames */
-		tmpPacket.get().data(null);
-		tmpPacket.get().size(0);
-		do {
-			/* decode video frame */
-			avcodec_decode_video2(cContext, tmpFrame, got_frame, tmpPacket);
-			if (got_frame.get() != 0) {
-				if (keyTimeStamp == Long.MIN_VALUE || isKeyPacket(tmpPacket)) {
-					keyTimeStamp = tmpFrame.get().pkt_pts();
-				}
-				if (startTimeStamp == Long.MIN_VALUE) {
-					startTimeStamp = tmpFrame.get().pkt_pts();
-				}
-				frameTimeStamps.put(frameNr, tmpFrame.get().pkt_pts());
-				seconds.add((double) ((tmpFrame.get().pkt_pts() - startTimeStamp) * value(timebase)));
-				keyTimeStamps.put(frameNr, keyTimeStamp);
-				firePropertyChange("progress", fileName, frameNr); //$NON-NLS-1$
-				frameNr++;
-			}
-		} while (got_frame.get() != 0);
-		// clean up temporary objects
-		AvcodecLibrary.avcodec_close(tmpcContext);
-		tmpcContext = null;
-		tempStream = null;
-		tmpPacket = null;
-		if (tmpFrame != null) {
-			av_free(tmpFrame);
-			tmpFrame = null;
-		}
-		if (tmpContext != null) {
-			avformat_close_input(tmpContext.getReference());
-			tmpContext = null;
-		}
-
-		// throw IOException if no frames were loaded
-		if (frameTimeStamps.size() == 0) {
-			firePropertyChange("progress", fileName, null); //$NON-NLS-1$
-			failDetectTimer.stop();
-			dispose();
-			// VideoIO.setCanceled(true);
-			throw new IOException("packets loaded but no complete picture"); //$NON-NLS-1$
-		}
-
-		// set initial video clip properties
-		frameCount = frameTimeStamps.size();
-		startFrameNumber = 0;
-		endFrameNumber = frameCount - 1;
-		// create startTimes array
-		startTimes = new double[frameCount];
-		startTimes[0] = 0;
-		for (int i = 1; i < startTimes.length; i++) {
-			startTimes[i] = seconds.get(i) * 1000;
 		}
 
 		// initialize packet, picture and image
@@ -718,34 +582,6 @@ public class FFMPegVideo extends VideoAdapter {
 	}
 
 	/**
-	 * Determines if a packet is a key packet.
-	 * 
-	 * @param packet
-	 *            the packet
-	 * @return true if packet is a key in the video stream
-	 */
-	private boolean isKeyPacket(Pointer<AVPacket> packet) {
-		if ((packet.get().flags() & AV_PKT_FLAG_KEY) != 0) {
-			return true;
-		}
-		return false;
-	}
-
-	/**
-	 * Determines if a packet is a video packet.
-	 * 
-	 * @param packet
-	 *            the packet
-	 * @return true if packet is in the video stream
-	 */
-	private boolean isVideoPacket(Pointer<AVPacket> packet) {
-		if (packet.get().stream_index() == streamIndex) {
-			return true;
-		}
-		return false;
-	}
-
-	/**
 	 * Returns the key packet with the specified timestamp.
 	 * 
 	 * @param timestamp
@@ -768,7 +604,7 @@ public class FFMPegVideo extends VideoAdapter {
 				if (isKeyPacket(packet) && packet.get().pts() == timestamp) {
 					return true;
 				}
-				if (isVideoPacket(packet) && packet.get().pts() > timestamp) {
+				if (isVideoPacket(packet, streamIndex) && packet.get().pts() > timestamp) {
 					delta = timestamp - packet.get().pts();
 					break;
 				}
@@ -782,7 +618,7 @@ public class FFMPegVideo extends VideoAdapter {
 				if (isKeyPacket(packet) && packet.get().pts() == timestamp) {
 					return true;
 				}
-				if (isVideoPacket(packet) && packet.get().pts() > timestamp) {
+				if (isVideoPacket(packet, streamIndex) && packet.get().pts() > timestamp) {
 					delta = timestamp - packet.get().pts();
 					break;
 				}
@@ -797,11 +633,11 @@ public class FFMPegVideo extends VideoAdapter {
 				&& AvformatLibrary.av_seek_frame(context, streamIndex,
 						timestamp, AvformatLibrary.AVSEEK_FLAG_BACKWARD) >= 0) {
 			while (av_read_frame(context, packet) >= 0) {
-				if (isKeyPacket(packet) && isVideoPacket(packet)
+				if (isKeyPacket(packet) && isVideoPacket(packet, streamIndex)
 						&& packet.get().pts() == timestamp) {
 					return true;
 				}
-				if (isVideoPacket(packet) && packet.get().pts() > timestamp) {
+				if (isVideoPacket(packet, streamIndex) && packet.get().pts() > timestamp) {
 					delta = timestamp - packet.get().pts();
 					break;
 				}
@@ -814,7 +650,7 @@ public class FFMPegVideo extends VideoAdapter {
 			if (isKeyPacket(packet) && packet.get().pts() == timestamp) {
 				return true;
 			}
-			if (isVideoPacket(packet) && packet.get().pts() > timestamp) {
+			if (isVideoPacket(packet, streamIndex) && packet.get().pts() > timestamp) {
 				break;
 			}
 		}
@@ -848,7 +684,7 @@ public class FFMPegVideo extends VideoAdapter {
 		long currentTS = packet.get().pts();
 		long targetTS = getTimeStamp(frameNumber);
 		long keyTS = keyTimeStamps.get(frameNumber);
-		if (currentTS == targetTS && isVideoPacket(packet)) {
+		if (currentTS == targetTS && isVideoPacket(packet, streamIndex)) {
 			// frame is already loaded
 			return true;
 		}
@@ -947,45 +783,17 @@ public class FFMPegVideo extends VideoAdapter {
 	 */
 	private BufferedImage getBufferedImageFromPicture() {
 		// use BgrConverter to convert picture to buffered image
+		try {
 		if (converter == null) {
-			converter = new BgrConverter(cContext.get().width(), cContext.get()
+			converter = new BgrConverter(cContext.get().pix_fmt(), cContext.get().width(), cContext.get()
 					.height());
 		}
-		// if needed, convert picture into BGR24 format
-		if (cContext.get().pix_fmt() != AVPixelFormat.AV_PIX_FMT_BGR24) {
-			if (resampler == null) {
-				resampler = SwscaleLibrary.sws_getContext(cContext.get()
-						.width(), cContext.get().height(), cContext.get()
-						.pix_fmt(), cContext.get().width(), cContext.get()
-						.height(), AVPixelFormat.AV_PIX_FMT_BGR24,
-						SwscaleLibrary.SWS_BILINEAR, null, null, null);
-				if (resampler == null) {
-					OSPLog.warning("Could not create color space resampler"); //$NON-NLS-1$
-					return null;
-				}
-				rpicture = Pointer.allocatePointers(
-						Byte.class, 4);
-				rpicture_linesize = Pointer.allocateInts(4);
-				rpicture_bufsize = av_image_alloc(rpicture, rpicture_linesize, cContext
-						.get().width(), cContext.get().height(),
-						AVPixelFormat.AV_PIX_FMT_BGR24, 1);
-				if(rpicture_bufsize < 0) {
-					OSPLog.warning("Could not allocate BGR24 picture memory");
-					return null;
-				}
-			}
-			if (SwscaleLibrary.sws_scale(resampler, picture, picture_linesize,
-					0, cContext.get().height(), rpicture, rpicture_linesize) < 0) {
-				OSPLog.warning("Could not encode video as BGR24"); //$NON-NLS-1$
-				return null;
-			}
+		} catch(IOException e) {
+			return null;
 		}
-
+		
 		BufferedImage image = null;
-		if(resampler == null)
-			image = converter.toImage(picture, picture_bufsize);
-		else
-			image = converter.toImage(rpicture, rpicture_bufsize);
+		image = converter.toImage(picture, picture_linesize, picture_bufsize);
 		// garbage collect to play smoothly--but slows down playback speed
 		// significantly!
 		if (playSmoothly)
@@ -1003,7 +811,7 @@ public class FFMPegVideo extends VideoAdapter {
 		while (av_read_frame(context, packet) >= 0) {
 			Pointer<AVPacket> origPacket = packet;
 			try {
-				if (isVideoPacket(packet)) {
+				if (isVideoPacket(packet, streamIndex)) {
 					// long timeStamp = packet.getTimeStamp();
 					// System.out.println("loading next packet at "+timeStamp+": "+packet.getSize());
 					return loadPacket();
@@ -1060,18 +868,6 @@ public class FFMPegVideo extends VideoAdapter {
 				.width(), cContext.get().height());
 	}
 
-	private AVRational copy(AVRational rat) {
-		AVRational ret = new AVRational();
-		ret.den(rat.den());
-		ret.num(rat.num());
-		return ret;
-	}
-
-	private double value(AVRational rat) {
-		double ret = 1.0 * rat.num() / rat.den();
-		return ret;
-	}
-	
 	/**
 	 * Resets the container to the beginning.
 	 */

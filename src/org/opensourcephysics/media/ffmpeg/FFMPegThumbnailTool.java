@@ -7,6 +7,7 @@ import java.awt.geom.AffineTransform;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.IOException;
 
 import org.opensourcephysics.media.core.VideoIO;
 import org.opensourcephysics.tools.ResourceLoader;
@@ -27,7 +28,7 @@ public class FFMPegThumbnailTool {
 	private Dimension dim;
   
   /**
-   * "Starts" this tool--called by XuggleVideoType so minijar will include it
+   * "Starts" this tool--called by FFMPegVideoType so minijar will include it
    */
   public static void start() {}
   
@@ -40,11 +41,12 @@ public class FFMPegThumbnailTool {
   public static synchronized BufferedImage createThumbnailImage(Dimension dim, String pathToVideo) {
   	THUMBNAIL_TOOL.initialize(dim);
   	String path = pathToVideo.startsWith("http:")? ResourceLoader.getURIPath(pathToVideo): pathToVideo; //$NON-NLS-1$
-// TODO   IMediaReader mediaReader = ToolFactory.makeReader(path);
-//    mediaReader.setBufferedImageTypeToGenerate(BufferedImage.TYPE_3BYTE_BGR);
-//    mediaReader.addListener(THUMBNAIL_TOOL);
-//    while (!THUMBNAIL_TOOL.isFinished() && mediaReader.readPacket()==null); // reads video until a thumbnail is created
-//    mediaReader.close();
+  	THUMBNAIL_TOOL.finished = false;
+  	FFMPegAnalyzer analyzer = null;
+  	try {
+  		analyzer = new FFMPegAnalyzer(path, true, TARGET_FRAME_NUMBER);
+  	  	THUMBNAIL_TOOL.thumbnailFromPicture(analyzer.getThumbnail());
+  	} catch (IOException e) { }
     return THUMBNAIL_TOOL.thumbnail;
   }
   
@@ -60,50 +62,44 @@ public class FFMPegThumbnailTool {
     return VideoIO.writeImageFile(thumb, pathToThumbnail);
   }
   
-// TODO  /**
-//   * Creates a thumbnail image from the video image passed in by an IMediaReader. 
-//   * @param event the IVideoPictureEvent from the mediaReader
-//   */
-//  @Override
-//  public void onVideoPicture(IVideoPictureEvent event) {
-//  	if (!isFinished()) {
-//      BufferedImage image = event.getImage();
-//      
-//      double widthFactor = dim.getWidth()/image.getWidth();
-//      double heightFactor = dim.getHeight()/image.getHeight();
-//      double factor = Math.min(widthFactor, heightFactor);
-//      
-//      // determine actual dimensions of thumbnail
-//      int w = (int)(image.getWidth()*factor);
-//      int h = (int)(image.getHeight()*factor);
-//      
-//  		thumbnail = new BufferedImage(w, h, BufferedImage.TYPE_3BYTE_BGR);
-//  		g = thumbnail.createGraphics();
-//      AffineTransform transform = AffineTransform.getScaleInstance(factor, factor);
-//      g.setTransform(transform); // shrink video image
-//      g.drawImage(image, 0, 0, null);
-//      
-//      if (overlay!=null) {
-//	      g.scale(1/factor, 1/factor); // draw overlay at full scale
-//	      
-//        // determine the inset and translate the image
-//        Rectangle2D bounds = new Rectangle2D.Float(0, 0, overlay.getWidth(), overlay.getHeight());
-//        double ht = bounds.getHeight();
-//        g.translate(0.5*ht, thumbnail.getHeight()-1.5*ht);
-//
-//        g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.2f));
-//        g.drawImage(overlay, 0, 0, null);
-//
-//      }
-//      frameNumber++;
-//      finished = frameNumber>=TARGET_FRAME_NUMBER;
-//  	}
-//      
-//    // call parent which will pass the video onto next tool in chain
-//    super.onVideoPicture(event);
-//      
-//  }
-//    
+  /**
+   * Creates a thumbnail image from the video image passed in from a file. 
+   * @param BufferedImage from the file
+   */
+  private void thumbnailFromPicture(BufferedImage image) {
+  	if (!isFinished()) {
+      
+      double widthFactor = dim.getWidth()/image.getWidth();
+      double heightFactor = dim.getHeight()/image.getHeight();
+      double factor = Math.min(widthFactor, heightFactor);
+      
+      // determine actual dimensions of thumbnail
+      int w = (int)(image.getWidth()*factor);
+      int h = (int)(image.getHeight()*factor);
+      
+  		thumbnail = new BufferedImage(w, h, BufferedImage.TYPE_3BYTE_BGR);
+  		g = thumbnail.createGraphics();
+      AffineTransform transform = AffineTransform.getScaleInstance(factor, factor);
+      g.setTransform(transform); // shrink video image
+      g.drawImage(image, 0, 0, null);
+      
+      if (overlay!=null) {
+	      g.scale(1/factor, 1/factor); // draw overlay at full scale
+	      
+        // determine the inset and translate the image
+        Rectangle2D bounds = new Rectangle2D.Float(0, 0, overlay.getWidth(), overlay.getHeight());
+        double ht = bounds.getHeight();
+        g.translate(0.5*ht, thumbnail.getHeight()-1.5*ht);
+
+        g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.2f));
+        g.drawImage(overlay, 0, 0, null);
+
+      }
+      frameNumber++;
+      finished = frameNumber>=TARGET_FRAME_NUMBER;
+  	}
+  }
+    
   private void initialize(Dimension dimension) {
   	dim = dimension;
 		finished = false;
