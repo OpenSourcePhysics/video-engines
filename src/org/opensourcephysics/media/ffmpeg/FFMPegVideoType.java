@@ -36,7 +36,7 @@ public class FFMPegVideoType implements VideoType {
 			}
 		};
 		OSPLog.getOSPLog().addPropertyChangeListener(errorListener);
-		// TODO: FFMPegThumbnailTool.start();
+		FFMPegThumbnailTool.start();
 	}
 
 	private VideoFileFilter singleTypeFilter; // null for general type
