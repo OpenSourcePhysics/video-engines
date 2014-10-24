@@ -19,7 +19,7 @@ import org.opensourcephysics.media.core.VideoFileFilter;
 import org.opensourcephysics.tools.ResourceLoader;
 
 /**
- * A class to record videos using a Xuggle IMediaWriter.
+ * A class to record videos using a FFMPeg IMediaWriter.
  */
 public class FFMPegWriterVideoRecorder extends ScratchVideoRecorder {
 
@@ -28,7 +28,7 @@ public class FFMPegWriterVideoRecorder extends ScratchVideoRecorder {
 	private String tempFileType = "png"; //$NON-NLS-1$
 
 	/**
-   * Constructs a XuggleVideoRecorder object.
+   * Constructs a FFMPegVideoRecorder object.
 	 * @param type the video type
    */
   public FFMPegWriterVideoRecorder(FFMPegVideoType type) {
@@ -171,7 +171,7 @@ public class FFMPegWriterVideoRecorder extends ScratchVideoRecorder {
 	
 	/**
 	 * Given the short name of a container, prints out information about
-	 * it, including which codecs Xuggler can write (mux) into that container.
+	 * it, including which codecs ffmpeg can write (mux) into that container.
 	 * 
 	 * @param name the short name of the format (e.g. "flv")
 	 */
