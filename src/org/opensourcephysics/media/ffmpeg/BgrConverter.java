@@ -18,7 +18,7 @@ import java.nio.ByteBuffer;
 
 import org.bridj.IntValuedEnum;
 import org.bridj.Pointer;
-import org.ffmpeg.avcodec.AvcodecLibrary.AVPicture;
+import org.ffmpeg.avcodec.AVPicture;
 import org.ffmpeg.avutil.AvutilLibrary.AVPixelFormat;
 import org.ffmpeg.swscale.SwscaleLibrary;
 import org.ffmpeg.swscale.SwscaleLibrary.SwsContext;
