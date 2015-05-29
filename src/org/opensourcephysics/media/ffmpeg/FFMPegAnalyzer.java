@@ -1,7 +1,6 @@
 package org.opensourcephysics.media.ffmpeg;
 
 import static org.ffmpeg.avcodec.AvcodecLibrary.AV_PKT_FLAG_KEY;
-import static org.ffmpeg.avcodec.AvcodecLibrary.alloc_frame;
 import static org.ffmpeg.avcodec.AvcodecLibrary.av_free_packet;
 import static org.ffmpeg.avcodec.AvcodecLibrary.av_init_packet;
 import static org.ffmpeg.avcodec.AvcodecLibrary.avcodec_decode_video2;
@@ -9,11 +8,12 @@ import static org.ffmpeg.avcodec.AvcodecLibrary.avcodec_find_decoder;
 import static org.ffmpeg.avcodec.AvcodecLibrary.avcodec_open2;
 import static org.ffmpeg.avformat.AvformatLibrary.av_find_best_stream;
 import static org.ffmpeg.avformat.AvformatLibrary.av_read_frame;
+import static org.ffmpeg.avformat.AvformatLibrary.av_register_all;
 import static org.ffmpeg.avformat.AvformatLibrary.avformat_close_input;
 import static org.ffmpeg.avformat.AvformatLibrary.avformat_find_stream_info;
 import static org.ffmpeg.avformat.AvformatLibrary.avformat_open_input;
-import static org.ffmpeg.avformat.AvformatLibrary.av_register_all;
-import static org.ffmpeg.avutil.AvutilLibrary.av_free;
+import static org.ffmpeg.avutil.AvutilLibrary.AV_NOPTS_VALUE;
+import static org.ffmpeg.avutil.AvutilLibrary.av_frame_get_best_effort_timestamp;
 import static org.ffmpeg.avutil.AvutilLibrary.av_image_copy;
 
 import java.awt.image.BufferedImage;
@@ -131,12 +131,19 @@ public class FFMPegAnalyzer {
 		return thumbnail;
 	}
 
+	private long getTimeStamp(Pointer<AVFrame> pFrame) {
+		long pts = av_frame_get_best_effort_timestamp(pFrame);
+		if( pts == AV_NOPTS_VALUE)
+			pts = 0;
+		return pts;
+	}
+	
 	public void analyze() throws IOException {
 		Pointer<AVFormatContext> context = null;
 		Pointer<AVStream> stream = null;
 		Pointer<AVCodecContext> cContext = null;
 		Pointer<AVCodec> codec = null;
-		Pointer<AVPacket> packet = null;
+		Pointer<AVPacket> packet = null, orig_packet = null;
 		Pointer<AVFrame> frame = null;
 		Pointer<Integer> got_frame = null;
 		try {
@@ -187,6 +194,7 @@ public class FFMPegAnalyzer {
 
 			long keyTimeStamp = Long.MIN_VALUE;
 			long startTimeStamp = Long.MIN_VALUE;
+			long pts;
 			seconds = new ArrayList<Double>();
 			if (support != null)
 				support.firePropertyChange("progress", path, 0); //$NON-NLS-1$
@@ -205,7 +213,7 @@ public class FFMPegAnalyzer {
 				converter = new BgrConverter(cContext.get().pix_fmt(), cContext
 						.get().width(), cContext.get().height());
 			}
-			frame = alloc_frame();
+			frame = Pointer.allocate(AVFrame.class);
 			got_frame = Pointer.allocateInt();
 			while (av_read_frame(context, packet) >= 0) {
 				if (VideoIO.isCanceled()) {
@@ -214,41 +222,48 @@ public class FFMPegAnalyzer {
 					throw new IOException("Canceled by user"); //$NON-NLS-1$
 				}
 				if (isVideoPacket(packet, streamIndex)) {
+					orig_packet = packet;
+					long ptr = packet.get().data().getPeer();
 					int bytesDecoded;
-					/* decode video frame */
-					bytesDecoded = avcodec_decode_video2(cContext, frame,
-							got_frame, packet);
-					// check for errors
-					if (bytesDecoded < 0)
-						break;
-					if (got_frame.get() != 0) {
-						if (keyTimeStamp == Long.MIN_VALUE
-								|| isKeyPacket(packet)) {
-							keyTimeStamp = frame.get().pkt_pts();
+					do {
+						/* decode video frame */
+						bytesDecoded = avcodec_decode_video2(cContext, frame,
+								got_frame, packet);
+						// check for errors
+						if (bytesDecoded < 0)
+							break;
+						if (got_frame.get() != 0) {
+							pts = getTimeStamp(frame);
+							if (keyTimeStamp == Long.MIN_VALUE
+									|| isKeyFrame(frame)) {
+								keyTimeStamp = pts;
+							}
+							if (startTimeStamp == Long.MIN_VALUE) {
+								startTimeStamp = pts;
+							}
+							frameTimeStamps.put(frameNr, pts);
+							seconds.add((double) ((pts - startTimeStamp) * value(timebase)));
+							keyTimeStamps.put(frameNr, keyTimeStamp);
+							if (support != null)
+								support.firePropertyChange(
+										"progress", path, frameNr); //$NON-NLS-1$
+							if (createThumbnail) {
+								/*
+								 * copy decoded frame to destination buffer: this is
+								 * required since rawvideo expects non aligned data
+								 */
+								av_image_copy(picture, picture_linesize, frame
+										.get().data(), frame.get().linesize(),
+										cContext.get().pix_fmt(), cContext.get()
+												.width(), cContext.get().height());
+								thumbnail = converter.toImage(picture, picture_linesize, picture_bufsize);
+							}
+							frameNr++;
 						}
-						if (startTimeStamp == Long.MIN_VALUE) {
-							startTimeStamp = frame.get().pkt_pts();
-						}
-						frameTimeStamps.put(frameNr, frame.get().pkt_pts());
-						seconds.add((double) ((frame.get().pkt_pts() - startTimeStamp) * value(stream
-								.get().time_base())));
-						keyTimeStamps.put(frameNr, keyTimeStamp);
-						if (support != null)
-							support.firePropertyChange(
-									"progress", path, frameNr); //$NON-NLS-1$
-						if (createThumbnail) {
-							/*
-							 * copy decoded frame to destination buffer: this is
-							 * required since rawvideo expects non aligned data
-							 */
-							av_image_copy(picture, picture_linesize, frame
-									.get().data(), frame.get().linesize(),
-									cContext.get().pix_fmt(), cContext.get()
-											.width(), cContext.get().height());
-							thumbnail = converter.toImage(picture, picture_linesize, picture_bufsize);
-						}
-						frameNr++;
-					}
+						ptr+=bytesDecoded;
+						packet.get().data((Pointer<Byte>)Pointer.pointerToAddress(ptr));
+						packet.get().size(packet.get().size()-bytesDecoded);
+					} while(packet.get().size() > 0);
 				}
 				av_free_packet(packet);
 				if (createThumbnail
@@ -258,6 +273,7 @@ public class FFMPegAnalyzer {
 			/* flush cached frames */
 			packet.get().data(null);
 			packet.get().size(0);
+
 			do {
 				if (createThumbnail
 						&& (thumbnail != null || frameNr >= targetFrameNumber))
@@ -265,14 +281,15 @@ public class FFMPegAnalyzer {
 				/* decode video frame */
 				avcodec_decode_video2(cContext, frame, got_frame, packet);
 				if (got_frame.get() != 0) {
-					if (keyTimeStamp == Long.MIN_VALUE || isKeyPacket(packet)) {
-						keyTimeStamp = frame.get().pkt_pts();
+					pts = getTimeStamp(frame);
+					if (keyTimeStamp == Long.MIN_VALUE || isKeyFrame(frame)) {
+						keyTimeStamp = pts;
 					}
 					if (startTimeStamp == Long.MIN_VALUE) {
-						startTimeStamp = frame.get().pkt_pts();
+						startTimeStamp = pts;
 					}
-					frameTimeStamps.put(frameNr, frame.get().pkt_pts());
-					seconds.add((double) ((frame.get().pkt_pts() - startTimeStamp) * value(timebase)));
+					frameTimeStamps.put(frameNr, pts);
+					seconds.add((double) ((pts - startTimeStamp) * value(timebase)));
 					keyTimeStamps.put(frameNr, keyTimeStamp);
 					if (support != null)
 						support.firePropertyChange("progress", path, frameNr); //$NON-NLS-1$
@@ -285,10 +302,7 @@ public class FFMPegAnalyzer {
 			cContext = null;
 			stream = null;
 			packet = null;
-			if (frame != null) {
-				av_free(frame);
-				frame = null;
-			}
+			frame = null;
 			if (context != null) {
 				avformat_close_input(context.getReference());
 				context = null;
@@ -302,14 +316,14 @@ public class FFMPegAnalyzer {
 	}
 
 	/**
-	 * Determines if a packet is a key packet.
+	 * Determines if a frame is a key frame.
 	 * 
 	 * @param packet
-	 *            the packet
-	 * @return true if packet is a key in the video stream
+	 *            the frame
+	 * @return true if frame is a key in the video stream
 	 */
-	public static boolean isKeyPacket(Pointer<AVPacket> packet) {
-		if ((packet.get().flags() & AV_PKT_FLAG_KEY) != 0) {
+	public static boolean isKeyFrame(Pointer<AVFrame> frame) {
+		if ((frame.get().flags() & AV_PKT_FLAG_KEY) != 0) {
 			return true;
 		}
 		return false;

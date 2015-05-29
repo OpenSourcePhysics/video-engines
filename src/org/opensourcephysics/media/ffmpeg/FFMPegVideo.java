@@ -2,16 +2,18 @@ package org.opensourcephysics.media.ffmpeg;
 
 import static org.ffmpeg.avcodec.AvcodecLibrary.av_free_packet;
 import static org.ffmpeg.avcodec.AvcodecLibrary.av_init_packet;
+import static org.ffmpeg.avcodec.AvcodecLibrary.avcodec_decode_video2;
 import static org.ffmpeg.avcodec.AvcodecLibrary.avcodec_find_decoder;
 import static org.ffmpeg.avcodec.AvcodecLibrary.avcodec_open2;
 import static org.ffmpeg.avformat.AvformatLibrary.av_read_frame;
 import static org.ffmpeg.avformat.AvformatLibrary.avformat_find_stream_info;
 import static org.ffmpeg.avformat.AvformatLibrary.avformat_open_input;
-import static org.ffmpeg.avutil.AvutilLibrary.av_free;
+import static org.ffmpeg.avutil.AvutilLibrary.AV_NOPTS_VALUE;
+import static org.ffmpeg.avutil.AvutilLibrary.av_frame_get_best_effort_timestamp;
 import static org.ffmpeg.avutil.AvutilLibrary.av_freep;
 import static org.ffmpeg.avutil.AvutilLibrary.av_image_copy;
 import static org.opensourcephysics.media.ffmpeg.FFMPegAnalyzer.copy;
-import static org.opensourcephysics.media.ffmpeg.FFMPegAnalyzer.isKeyPacket;
+import static org.opensourcephysics.media.ffmpeg.FFMPegAnalyzer.isKeyFrame;
 import static org.opensourcephysics.media.ffmpeg.FFMPegAnalyzer.isVideoPacket;
 
 import java.awt.Dimension;
@@ -62,6 +64,7 @@ public class FFMPegVideo extends VideoAdapter {
 	int streamIndex = -1;
 	Pointer<AVCodecContext> cContext;
 	Pointer<AVCodec> codec;
+	Pointer<AVFrame> frame;
 	Pointer<AVPacket> packet;
 	Pointer<Pointer<Byte>> picture = Pointer.allocatePointers(Byte.class, 4);
 	Pointer<Integer> picture_linesize = Pointer.allocateInts(4);
@@ -69,9 +72,9 @@ public class FFMPegVideo extends VideoAdapter {
 	Pointer<AVStream> stream;
 	AVRational timebase;
 	BgrConverter converter;
-	// maps frame number to timestamp of displayed packet (last packet loaded)
+	// maps frame number to timestamp of displayed frame (last frame loaded)
 	Map<Integer, Long> frameTimeStamps = new HashMap<Integer, Long>();
-	// maps frame number to timestamp of key packet (first packet loaded)
+	// maps frame number to timestamp of key frame (first frame loaded)
 	Map<Integer, Long> keyTimeStamps = new HashMap<Integer, Long>();
 	// array of frame start times in milliseconds
 	private double[] startTimes;
@@ -285,6 +288,13 @@ public class FFMPegVideo extends VideoAdapter {
 		}
 	}
 
+	private long getTimeStamp(Pointer<AVFrame> frame) {
+		long pts = av_frame_get_best_effort_timestamp(frame);
+		if( pts == AV_NOPTS_VALUE)
+			pts = 0;
+		return pts;
+	}
+	
 	/**
 	 * Disposes of this video.
 	 */
@@ -305,8 +315,9 @@ public class FFMPegVideo extends VideoAdapter {
 			if (picture.getValidElements() > 0)
 				av_freep(picture);
 			picture = null;
-			packet = null;
 		}
+		packet = null;
+		frame = null;
 		if (context != null) {
 			AvformatLibrary.avformat_close_input(context.getReference());
 			context = null;
@@ -493,7 +504,7 @@ public class FFMPegVideo extends VideoAdapter {
 			setProperty("path", XML.getRelativePath(fileName)); //$NON-NLS-1$
 		}
 
-		// initialize packet, picture and image
+		// initialize frame, packet, picture and image
 		/* allocate image where the decoded image will be put */
 		picture_bufsize = AvutilLibrary.av_image_alloc(picture,
 				picture_linesize, cContext.get().width(), cContext.get()
@@ -507,7 +518,8 @@ public class FFMPegVideo extends VideoAdapter {
 		av_init_packet(packet);
 		packet.get().data(null);
 		packet.get().size(0);
-		loadNextPacket();
+		frame = Pointer.allocate(AVFrame.class);
+		loadNextFrame();
 		BufferedImage img = getImage(0);
 		if (img == null) {
 			for (int i = 1; i < frameTimeStamps.size(); i++) {
@@ -585,16 +597,17 @@ public class FFMPegVideo extends VideoAdapter {
 	}
 
 	/**
-	 * Returns the key packet with the specified timestamp.
+	 * Returns the key frame with the specified timestamp.
 	 * 
 	 * @param timestamp
 	 *            the timestamp in stream timebase units
-	 * @return true if packet found and loaded
+	 * @return true if frame found and loaded
 	 */
-	private boolean loadKeyPacket(long timestamp) {
-		// compare requested timestamp with current packet
-		long delta = timestamp - packet.get().pts();
-		// if delta is zero, return packet
+	private boolean loadKeyFrame(long timestamp) {
+		// compare requested timestamp with current frame
+		long delta = timestamp - getTimeStamp(frame);
+		long currenttimestamp = Integer.MIN_VALUE;
+		// if delta is zero, return frame
 		if (delta == 0) {
 			return true;
 		}
@@ -603,12 +616,13 @@ public class FFMPegVideo extends VideoAdapter {
 		timebase = copy(stream.get().time_base());
 		int shortTime = timebase != null ? timebase.den() : 1; // one second
 		if (delta > 0 && delta < shortTime) {
-			while (av_read_frame(context, packet) >= 0) {
-				if (isKeyPacket(packet) && packet.get().pts() == timestamp) {
+			while (loadNextFrame()) {
+				currenttimestamp = getTimeStamp(frame);
+				if (isKeyFrame(frame) && currenttimestamp == timestamp) {
 					return true;
 				}
-				if (isVideoPacket(packet, streamIndex) && packet.get().pts() > timestamp) {
-					delta = timestamp - packet.get().pts();
+				if (currenttimestamp > timestamp) {
+					delta = timestamp - currenttimestamp;
 					break;
 				}
 			}
@@ -617,12 +631,13 @@ public class FFMPegVideo extends VideoAdapter {
 		if (delta > 0
 				&& AvformatLibrary.av_seek_frame(context, streamIndex,
 						timestamp, 0) >= 0) {
-			while (av_read_frame(context, packet) >= 0) {
-				if (isKeyPacket(packet) && packet.get().pts() == timestamp) {
+			while (loadNextFrame()) {
+				currenttimestamp = getTimeStamp(frame);
+				if (isKeyFrame(frame) && currenttimestamp == timestamp) {
 					return true;
 				}
-				if (isVideoPacket(packet, streamIndex) && packet.get().pts() > timestamp) {
-					delta = timestamp - packet.get().pts();
+				if (currenttimestamp > timestamp) {
+					delta = timestamp - currenttimestamp;
 					break;
 				}
 			}
@@ -635,13 +650,13 @@ public class FFMPegVideo extends VideoAdapter {
 		if (delta < 0
 				&& AvformatLibrary.av_seek_frame(context, streamIndex,
 						timestamp, AvformatLibrary.AVSEEK_FLAG_BACKWARD) >= 0) {
-			while (av_read_frame(context, packet) >= 0) {
-				if (isKeyPacket(packet) && isVideoPacket(packet, streamIndex)
-						&& packet.get().pts() == timestamp) {
+			while (loadNextFrame()) {
+				currenttimestamp = getTimeStamp(frame);
+				if (isKeyFrame(frame) && currenttimestamp == timestamp) {
 					return true;
 				}
-				if (isVideoPacket(packet, streamIndex) && packet.get().pts() > timestamp) {
-					delta = timestamp - packet.get().pts();
+				if (currenttimestamp > timestamp) {
+					delta = timestamp - currenttimestamp;
 					break;
 				}
 			}
@@ -649,11 +664,12 @@ public class FFMPegVideo extends VideoAdapter {
 
 		// if all else fails, reopen container and step forward
 		resetContainer();
-		while (av_read_frame(context, packet) >= 0) {
-			if (isKeyPacket(packet) && packet.get().pts() == timestamp) {
+		while (loadNextFrame()) {
+			currenttimestamp = getTimeStamp(frame);
+			if (isKeyFrame(frame) && currenttimestamp == timestamp) {
 				return true;
 			}
-			if (isVideoPacket(packet, streamIndex) && packet.get().pts() > timestamp) {
+			if (currenttimestamp > timestamp) {
 				break;
 			}
 		}
@@ -663,15 +679,15 @@ public class FFMPegVideo extends VideoAdapter {
 	}
 
 	/**
-	 * Gets the key packet needed to display a specified frame.
+	 * Gets the key frame needed to display a specified frame.
 	 * 
 	 * @param frameNumber
 	 *            the frame number
-	 * @return true, if packet found
+	 * @return true, if frame found
 	 */
-	private boolean loadKeyPacketForFrame(int frameNumber) {
+	private boolean loadKeyFrameForFrame(int frameNumber) {
 		long keyTimeStamp = keyTimeStamps.get(frameNumber);
-		return loadKeyPacket(keyTimeStamp);
+		return loadKeyFrame(keyTimeStamp);
 	}
 
 	/**
@@ -684,32 +700,32 @@ public class FFMPegVideo extends VideoAdapter {
 	 */
 	private boolean loadPicture(int frameNumber) {
 		// check to see if seek is needed
-		long currentTS = packet.get().pts();
+		long currentTS = getTimeStamp(frame);
 		long targetTS = getTimeStamp(frameNumber);
 		long keyTS = keyTimeStamps.get(frameNumber);
-		if (currentTS == targetTS && isVideoPacket(packet, streamIndex)) {
+		if (currentTS == targetTS) {
 			// frame is already loaded
 			return true;
 		}
 		if (currentTS >= keyTS && currentTS < targetTS) {
 			// no need to seek--just step forward
-			if (loadNextPacket()) {
-				int n = getFrameNumber(packet);
+			if (loadNextFrame()) {
+				int n = getFrameNumber(frame);
 				while (n > -2 && n < frameNumber) {
-					if (loadNextPacket()) {
-						n = getFrameNumber(packet);
+					if (loadNextFrame()) {
+						n = getFrameNumber(frame);
 					} else
 						return false;
 				}
 			} else
 				return false;
-		} else if (loadKeyPacketForFrame(frameNumber)) {
+		} else if (loadKeyFrameForFrame(frameNumber)) {
 			// long timeStamp = packet.getTimeStamp();
-			if (loadPacket()) {
-				int n = getFrameNumber(packet);
+			if (loadFrame()) {
+				int n = getFrameNumber(frame);
 				while (n > -2 && n < frameNumber) {
-					if (loadNextPacket()) {
-						n = getFrameNumber(packet);
+					if (loadNextFrame()) {
+						n = getFrameNumber(frame);
 					} else
 						return false;
 				}
@@ -747,16 +763,16 @@ public class FFMPegVideo extends VideoAdapter {
 	}
 
 	/**
-	 * Gets the frame number for a specified packet.
+	 * Gets the frame number for a specified frame.
 	 * 
 	 * @param packet
 	 *            the packet
-	 * @return the frame number, or -2 if not a video packet
+	 * @return the frame number, or -2 if null
 	 */
-	private int getFrameNumber(Pointer<AVPacket> packet) {
-		if (packet.get().stream_index() != streamIndex)
+	private int getFrameNumber(Pointer<AVFrame> frame) {
+		if (frame == null)
 			return -2;
-		return getFrameNumber(packet.get().pts());
+		return getFrameNumber(getTimeStamp(frame));
 	}
 
 	/**
@@ -805,19 +821,20 @@ public class FFMPegVideo extends VideoAdapter {
 	}
 
 	/**
-	 * Loads the next video packet in the container into the current FFMPeg
+	 * Loads the next video frame in the container into the current FFMPeg
 	 * picture.
 	 * 
 	 * @return true if successfully loaded
 	 */
-	private boolean loadNextPacket() {
+	private boolean loadNextFrame() {
 		while (av_read_frame(context, packet) >= 0) {
 			Pointer<AVPacket> origPacket = packet;
 			try {
 				if (isVideoPacket(packet, streamIndex)) {
 					// long timeStamp = packet.getTimeStamp();
 					// System.out.println("loading next packet at "+timeStamp+": "+packet.getSize());
-					return loadPacket();
+					if( loadFrame() )
+						return true;
 				}
 			} finally {
 				if (origPacket != null) {
@@ -825,40 +842,47 @@ public class FFMPegVideo extends VideoAdapter {
 				}
 			}
 		}
+		/* load cached frame */
+		packet.get().data(null);
+		packet.get().size(0);
+		if ( loadFrame() )
+			return true;
 		return false;
 	}
 
 	/**
-	 * Loads a video packet into the current ffmpeg picture.
+	 * Loads a video frame into the current ffmpeg picture.
 	 * 
-	 * @param packet
-	 *            the packet
-	 * @return true if successfully loaded
+	 * @return true if successfully loaded, false if no more 
+	 *              frames or no frame loaded.
 	 */
-	private boolean loadPacket() {
-		Pointer<Integer> got_picture = Pointer.allocateInt();
-		Pointer<AVFrame> frame = AvcodecLibrary.alloc_frame();
-		if (frame == null)
+	private boolean loadFrame() {
+		if (frame == null || packet == null)
 			return false;
-		try {
-			// decode the packet into the picture
-			int bytesDecoded = AvcodecLibrary.avcodec_decode_video2(
-					cContext, frame, got_picture, packet);
+		int bytesDecoded;
+		long ptr = 0;
+		do {
+			if(packet.get().size() > 0)
+				ptr = packet.get().data().getPeer();
+			Pointer<Integer> got_frame = Pointer.allocateInt();
+			// decode the frame into the picture
+			bytesDecoded = avcodec_decode_video2(
+					cContext, frame, got_frame, packet);
 			// check for errors
 			if (bytesDecoded < 0)
 				return false;
-
-			if (got_picture.getInt() == 1) {
+	
+			if (got_frame.getInt() == 1) {
 				copyToPicture(frame);
 				return true;
 			}
-			return true;
-		} finally {
-			if (frame != null) {
-				av_free(frame);
-				frame = null;
+			if(packet.get().size() > 0) {
+				ptr+=bytesDecoded;
+				packet.get().data((Pointer<Byte>)Pointer.pointerToAddress(ptr));
+				packet.get().size(packet.get().size()-bytesDecoded);
 			}
-		}
+		} while (packet.get().size() > 0);
+		return false;
 	}
 
 	private void copyToPicture(Pointer<AVFrame> frame) {
@@ -879,11 +903,11 @@ public class FFMPegVideo extends VideoAdapter {
 		if (AvformatLibrary.av_seek_frame(context, -1, // stream index -1 ==>
 														// seek to microseconds
 				0, AvformatLibrary.AVSEEK_FLAG_BACKWARD) >= 0) {
-			loadNextPacket();
+			loadNextFrame();
 		} else {
 			try {
 				reload();
-				loadNextPacket();
+				loadNextFrame();
 			} catch (IOException e) {
 				OSPLog.warning("Container could not be reset"); //$NON-NLS-1$   	
 			}
