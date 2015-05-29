@@ -5,6 +5,7 @@ import static org.ffmpeg.avcodec.AvcodecLibrary.av_init_packet;
 import static org.ffmpeg.avcodec.AvcodecLibrary.avcodec_decode_video2;
 import static org.ffmpeg.avcodec.AvcodecLibrary.avcodec_find_decoder;
 import static org.ffmpeg.avcodec.AvcodecLibrary.avcodec_open2;
+import static org.ffmpeg.avcodec.AvcodecLibrary.avcodec_flush_buffers;
 import static org.ffmpeg.avformat.AvformatLibrary.av_read_frame;
 import static org.ffmpeg.avformat.AvformatLibrary.avformat_find_stream_info;
 import static org.ffmpeg.avformat.AvformatLibrary.avformat_open_input;
@@ -12,6 +13,7 @@ import static org.ffmpeg.avutil.AvutilLibrary.AV_NOPTS_VALUE;
 import static org.ffmpeg.avutil.AvutilLibrary.av_frame_get_best_effort_timestamp;
 import static org.ffmpeg.avutil.AvutilLibrary.av_freep;
 import static org.ffmpeg.avutil.AvutilLibrary.av_image_copy;
+import static org.ffmpeg.avutil.AVUtil.av_q2d;
 import static org.opensourcephysics.media.ffmpeg.FFMPegAnalyzer.copy;
 import static org.opensourcephysics.media.ffmpeg.FFMPegAnalyzer.isKeyFrame;
 import static org.opensourcephysics.media.ffmpeg.FFMPegAnalyzer.isVideoPacket;
@@ -614,7 +616,7 @@ public class FFMPegVideo extends VideoAdapter {
 		// if delta is positive and short, step forward
 		AVRational timebase = null;
 		timebase = copy(stream.get().time_base());
-		int shortTime = timebase != null ? timebase.den() : 1; // one second
+		int shortTime = timebase != null ? (int)(1.0/av_q2d(timebase)) : 1; // one second
 		if (delta > 0 && delta < shortTime) {
 			while (loadNextFrame()) {
 				currenttimestamp = getTimeStamp(frame);
@@ -631,6 +633,7 @@ public class FFMPegVideo extends VideoAdapter {
 		if (delta > 0
 				&& AvformatLibrary.av_seek_frame(context, streamIndex,
 						timestamp, 0) >= 0) {
+			avcodec_flush_buffers(cContext);
 			while (loadNextFrame()) {
 				currenttimestamp = getTimeStamp(frame);
 				if (isKeyFrame(frame) && currenttimestamp == timestamp) {
@@ -650,6 +653,7 @@ public class FFMPegVideo extends VideoAdapter {
 		if (delta < 0
 				&& AvformatLibrary.av_seek_frame(context, streamIndex,
 						timestamp, AvformatLibrary.AVSEEK_FLAG_BACKWARD) >= 0) {
+			avcodec_flush_buffers(cContext);
 			while (loadNextFrame()) {
 				currenttimestamp = getTimeStamp(frame);
 				if (isKeyFrame(frame) && currenttimestamp == timestamp) {
@@ -720,17 +724,13 @@ public class FFMPegVideo extends VideoAdapter {
 			} else
 				return false;
 		} else if (loadKeyFrameForFrame(frameNumber)) {
-			// long timeStamp = packet.getTimeStamp();
-			if (loadFrame()) {
-				int n = getFrameNumber(frame);
-				while (n > -2 && n < frameNumber) {
-					if (loadNextFrame()) {
-						n = getFrameNumber(frame);
-					} else
-						return false;
-				}
-			} else
-				return false;
+			int n = getFrameNumber(frame);
+			while (n > -2 && n < frameNumber) {
+				if (loadNextFrame()) {
+					n = getFrameNumber(frame);
+				} else
+					return false;
+			}
 		}
 		return true;
 	}
@@ -900,9 +900,9 @@ public class FFMPegVideo extends VideoAdapter {
 	 */
 	private void resetContainer() {
 		// seek backwards--this will fail for streamed web videos
-		if (AvformatLibrary.av_seek_frame(context, -1, // stream index -1 ==>
-														// seek to microseconds
-				0, AvformatLibrary.AVSEEK_FLAG_BACKWARD) >= 0) {
+		if (AvformatLibrary.av_seek_frame(context, streamIndex, getTimeStamp(0), 
+				AvformatLibrary.AVSEEK_FLAG_BACKWARD) >= 0) {
+			avcodec_flush_buffers(cContext);
 			loadNextFrame();
 		} else {
 			try {
