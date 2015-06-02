@@ -582,31 +582,35 @@ public class XuggleVideo extends VideoAdapter {
    */
   @SuppressWarnings("deprecation")
 	private void reload() throws IOException {
-  	String url = container.getURL();
-  	container.close();
-		videoCoder.close();
-		videoCoder.delete();		
-		stream.delete();
-    boolean isLocal = url.toLowerCase().indexOf("file:")>-1; //$NON-NLS-1$
-    String path = isLocal? ResourceLoader.getNonURIPath(url): url;
-  	container = IContainer.make();
-  	if (isLocal) {
-	  	RandomAccessFile raf = new RandomAccessFile(path, "r"); //$NON-NLS-1$
-	    container.open(raf, IContainer.Type.READ, null);
-  	}
-  	else {
-	    container.open(path, IContainer.Type.READ, null);  		
-  	}    
-  	stream = container.getStream(streamIndex);
-  	videoCoder = stream.getStreamCoder();  
-    if (DiagnosticsForXuggle.getXuggleVersion().startsWith("3.4")) { //$NON-NLS-1$
-    	videoCoder.open(); // ver 3.4 
-    }
-    else {
-    	videoCoder.open(null, null); // ver 5.4
+  	try {
+			String url = container.getURL();
+			container.close();
+			videoCoder.close();
+			videoCoder.delete();		
+			stream.delete();
+			boolean isLocal = url.toLowerCase().indexOf("file:")>-1; //$NON-NLS-1$
+			String path = isLocal? ResourceLoader.getNonURIPath(url): url;
+			container = IContainer.make();
+			if (isLocal) {
+				RandomAccessFile raf = new RandomAccessFile(path, "r"); //$NON-NLS-1$
+			  container.open(raf, IContainer.Type.READ, null);
+			}
+			else {
+			  container.open(path, IContainer.Type.READ, null);  		
+			}    
+			stream = container.getStream(streamIndex);
+			videoCoder = stream.getStreamCoder();
+			if (DiagnosticsForXuggle.getXuggleVersion().startsWith("3.4")) { //$NON-NLS-1$
+				videoCoder.open(); // ver 3.4 
+			}
+			else {
+				videoCoder.open(null, null); // ver 5.4
 //    IMetaData params = IMetaData.make();
 //    videoCoder.open(params, params);   	
-    }
+			}
+		} catch (Exception e) {
+			throw new IOException("Unable to reload video"); //$NON-NLS-1$
+		}
   }
 
   /**
