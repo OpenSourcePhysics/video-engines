@@ -307,13 +307,6 @@ public class XuggleVideo extends VideoAdapter {
   	return playSmoothly;
   }
 
-  /**
-   * Called by the garbage collector when this video is no longer in use.
-   */
-  protected void finalize() {
-//    System.out.println("XuggleVideo garbage"); //$NON-NLS-1$
-  }
-  
 //______________________________  private methods _________________________
 
   /**
