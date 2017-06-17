@@ -1,15 +1,8 @@
 /*
- * Open Source Physics software is free software as described near the bottom of this code file.
+ * The org.opensourcephysics.media.xuggle package provides Xuggle
+ * services including implementations of the Video and VideoRecorder interfaces.
  *
- * For additional information and documentation on Open Source Physics please see:
- * <http://www.opensourcephysics.org/>
- */
-
-/*
- * The org.opensourcephysics.media package defines the Open Source Physics
- * media framework for working with video and other media.
- *
- * Copyright (c) 2004  Douglas Brown and Wolfgang Christian.
+ * Copyright (c) 2017  Douglas Brown and Wolfgang Christian.
  *
  * This is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -227,6 +220,6 @@ public class XuggleVideoType implements VideoType {
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston MA 02111-1307 USA
  * or view the license online at http://www.gnu.org/copyleft/gpl.html
  *
- * Copyright (c) 2007  The Open Source Physics project
+ * Copyright (c) 2017  The Open Source Physics project
  *                     http://www.opensourcephysics.org
  */
