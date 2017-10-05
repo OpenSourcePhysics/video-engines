@@ -2,7 +2,7 @@
  * The org.opensourcephysics.media.quicktime package provides QuickTime
  * services including implementations of the Video and VideoRecorder interfaces.
  *
- * Copyright (c) 2004  Douglas Brown and Wolfgang Christian.
+ * Copyright (c) 2017  Douglas Brown and Wolfgang Christian.
  *
  * This is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,11 +28,11 @@ import java.beans.*;
 import java.io.*;
 import java.net.*;
 import java.util.*;
-
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.*;
 import java.awt.image.*;
+
 import javax.swing.*;
 import javax.swing.event.*;
 
@@ -40,6 +40,7 @@ import org.opensourcephysics.controls.*;
 import org.opensourcephysics.display.*;
 import org.opensourcephysics.media.core.*;
 import org.opensourcephysics.tools.*;
+
 import quicktime.*;
 import quicktime.app.view.*;
 import quicktime.io.*;
@@ -1149,12 +1150,9 @@ public class QTVideo implements Video, MovieDrawingComplete {
     support.firePropertyChange(property, oldVal, newVal);
   }
 
-  /**
-   * Called by the garbage collector when this video is no longer in use.
-   */
+  @Override
   protected void finalize() {
-    dispose();
-//    System.out.println("QTVideo garbage"); //$NON-NLS-1$
+  	OSPLog.finer(getClass().getSimpleName()+" reclaimed by garbage collector"); //$NON-NLS-1$
   }
 
   //_______________________________ private methods ___________________________
