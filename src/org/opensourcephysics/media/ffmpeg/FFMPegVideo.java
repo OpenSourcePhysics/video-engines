@@ -345,13 +345,6 @@ public class FFMPegVideo extends VideoAdapter {
 		return playSmoothly;
 	}
 
-	/**
-	 * Called by the garbage collector when this video is no longer in use.
-	 */
-	protected void finalize() {
-		//	    System.out.println("FFMPegVideo garbage"); //$NON-NLS-1$
-	}
-
 	// ______________________________ private methods _________________________
 
 	/**
