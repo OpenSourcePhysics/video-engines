@@ -45,19 +45,13 @@ public class XuggleIO {
     if (xugglehome!=null) {
       try {
     	  VideoIO.addVideoEngine(new XuggleVideoType());
-    	  // determine if using version 5.4
-	  		boolean isXuggle54 = VideoIO.guessXuggleVersion()==5.4; // xuggle 5.4
 
-        // add common video types shared with QuickTime
+        // add common video types
       	for (String ext: VideoIO.VIDEO_EXTENSIONS) { // {"mov", "avi", "mp4"}
         	VideoFileFilter filter = new VideoFileFilter(ext, new String[] {ext});
         	XuggleVideoType xuggleType = new XuggleVideoType(filter);
-        	// avi not recordable with xuggle 3.4 or 5.4
+        	// avi not recordable with xuggle
           if (ext.equals("avi")) { //$NON-NLS-1$
-          	xuggleType.setRecordable(false);
-          }
-        	// mov and mp4 not recordable with Xuggle 5.4
-          if (isXuggle54 && (ext.equals("mov") || ext.equals("mp4"))) { //$NON-NLS-1$ //$NON-NLS-2$
           	xuggleType.setRecordable(false);
           }
           VideoIO.addVideoType(xuggleType);
@@ -107,13 +101,9 @@ public class XuggleIO {
       	vidType = new XuggleVideoType(filter);
       	vidType.setRecordable(false);
       	VideoIO.addVideoType(vidType);
+        ResourceLoader.addExtractExtension("ogg"); //$NON-NLS-1$
         ResourceLoader.addExtractExtension("mod"); //$NON-NLS-1$
-//      	// WEBM --problematic with Xuggle 5.4 and won't play with Xuggle 3.4...
-//      	filter = new VideoFileFilter("webm", new String[] {"webm"}); //$NON-NLS-1$ //$NON-NLS-2$
-//      	vidType = new XuggleVideoType(filter);
-//      	vidType.setRecordable(false);
-//      	VideoIO.addVideoType(vidType);
-//        ResourceLoader.addExtractExtension("webm"); //$NON-NLS-1$
+      	// WEBM unsupported by Xuggle
       }
       catch (Exception ex) { // Xuggle not working
       	OSPLog.config("Xuggle exception: "+ex.toString()); //$NON-NLS-1$

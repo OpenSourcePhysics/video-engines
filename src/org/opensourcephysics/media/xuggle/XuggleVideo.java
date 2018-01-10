@@ -51,7 +51,6 @@ import org.opensourcephysics.media.core.ImageCoordSystem;
 import org.opensourcephysics.media.core.VideoAdapter;
 import org.opensourcephysics.media.core.VideoIO;
 import org.opensourcephysics.media.core.VideoType;
-import org.opensourcephysics.tools.DiagnosticsForXuggle;
 import org.opensourcephysics.tools.Resource;
 import org.opensourcephysics.tools.ResourceLoader;
 
@@ -360,9 +359,9 @@ public class XuggleVideo extends VideoAdapter {
 	    	frameTime = frameStartPlayTime+getRate()*elapsedTime;
 	    	frameToPlay = getFrameNumberBefore(frameTime);
     	}
-    	if (frameToPlay==-1)
+    	if (frameToPlay==-1) {
     		frameToPlay = getEndFrameNumber();
-//  		startPlayingAtFrame(frameToPlay);
+    	}
     	setFrameNumber(frameToPlay);
     } 
   	else if(looping) {
@@ -399,7 +398,6 @@ public class XuggleVideo extends VideoAdapter {
    * @param fileName the video file name
    * @throws IOException
    */
-  @SuppressWarnings("deprecation")
 	private void load(String fileName) throws IOException {
     Resource res = ResourceLoader.getResource(fileName);
     if (res==null) {
@@ -443,22 +441,11 @@ public class XuggleVideo extends VideoAdapter {
 			dispose();
       throw new IOException("no video stream found in "+fileName); //$NON-NLS-1$
     }
-    // check that coder opens
     
     // check that coder opens
-    if (DiagnosticsForXuggle.getXuggleVersion().startsWith("3.4")) { //$NON-NLS-1$
-	    if (videoCoder.open() < 0) { // ver 3.4
-				dispose();
-	      throw new IOException("unable to open video decoder for "+fileName); //$NON-NLS-1$
-	    }
-    }
-    else {    
-//    IMetaData params = IMetaData.make(); // vers 5.4
-//    if (videoCoder.open(params, params) < 0) {    
-	    if (videoCoder.open(null, null) < 0) {
-				dispose();
-	      throw new IOException("unable to open video decoder for "+fileName); //$NON-NLS-1$
-	    }
+    if (videoCoder.open() < 0) {
+			dispose();
+      throw new IOException("unable to open video decoder for "+fileName); //$NON-NLS-1$
     }
     
     // set properties
@@ -483,14 +470,7 @@ public class XuggleVideo extends VideoAdapter {
   	}
     IStream tempStream = tempContainer.getStream(streamIndex);
     IStreamCoder tempCoder = tempStream.getStreamCoder();
-    if (DiagnosticsForXuggle.getXuggleVersion().startsWith("3.4")) { //$NON-NLS-1$
-    	tempCoder.open(); // ver 3.4 
-    }
-    else {
-    	tempCoder.open(null, null); // ver 5.4
-//    IMetaData params = IMetaData.make(); 
-//    tempCoder.open(params, params);   	
-    }
+    tempCoder.open();
     
     IVideoPicture tempPicture = IVideoPicture.make(tempCoder.getPixelType(),
     		tempCoder.getWidth(), tempCoder.getHeight());
@@ -556,7 +536,6 @@ public class XuggleVideo extends VideoAdapter {
 			firePropertyChange("progress", fileName, null); //$NON-NLS-1$
 			failDetectTimer.stop();		
 			dispose();
-//			VideoIO.setCanceled(true);
 			throw new IOException("packets loaded but no complete picture"); //$NON-NLS-1$
 		}
 
@@ -597,37 +576,25 @@ public class XuggleVideo extends VideoAdapter {
    *
    * @throws IOException
    */
-  @SuppressWarnings("deprecation")
-	private void reload() throws IOException {
-  	try {
-			String url = container.getURL();
-			container.close();
-			videoCoder.close();
-			videoCoder.delete();		
-			stream.delete();
-			boolean isLocal = url.toLowerCase().indexOf("file:")>-1; //$NON-NLS-1$
-			String path = isLocal? ResourceLoader.getNonURIPath(url): url;
-			container = IContainer.make();
-			if (isLocal) {
-				RandomAccessFile raf = new RandomAccessFile(path, "r"); //$NON-NLS-1$
-			  container.open(raf, IContainer.Type.READ, null);
-			}
-			else {
-			  container.open(path, IContainer.Type.READ, null);  		
-			}    
-			stream = container.getStream(streamIndex);
-			videoCoder = stream.getStreamCoder();
-			if (DiagnosticsForXuggle.getXuggleVersion().startsWith("3.4")) { //$NON-NLS-1$
-				videoCoder.open(); // ver 3.4 
-			}
-			else {
-				videoCoder.open(null, null); // ver 5.4
-//    IMetaData params = IMetaData.make();
-//    videoCoder.open(params, params);   	
-			}
-		} catch (Exception e) {
-			throw new IOException("Unable to reload video"); //$NON-NLS-1$
-		}
+  private void reload() throws IOException {
+  	String url = container.getURL();
+  	container.close();
+		videoCoder.close();
+		videoCoder.delete();		
+		stream.delete();
+    boolean isLocal = url.toLowerCase().indexOf("file:")>-1; //$NON-NLS-1$
+    String path = isLocal? ResourceLoader.getNonURIPath(url): url;
+  	container = IContainer.make();
+  	if (isLocal) {
+	  	RandomAccessFile raf = new RandomAccessFile(path, "r"); //$NON-NLS-1$
+	    container.open(raf, IContainer.Type.READ, null);
+  	}
+  	else {
+	    container.open(path, IContainer.Type.READ, null);  		
+  	}    
+  	stream = container.getStream(streamIndex);
+  	videoCoder = stream.getStreamCoder();  
+    videoCoder.open();
   }
 
   /**
@@ -789,7 +756,6 @@ public class XuggleVideo extends VideoAdapter {
 			else return false;
 		}
 		else if (getKeyPacketForFrame(frameNumber)!=null) {
-//			long timeStamp = packet.getTimeStamp();
 			if (loadPacket(packet)) {
 				int n = getFrameNumber(packet);
 				while (n > -2 && n < frameNumber) {

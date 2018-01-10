@@ -40,7 +40,6 @@ import org.opensourcephysics.controls.OSPLog;
 import org.opensourcephysics.controls.XML;
 import org.opensourcephysics.media.core.ScratchVideoRecorder;
 import org.opensourcephysics.media.core.VideoFileFilter;
-import org.opensourcephysics.tools.DiagnosticsForXuggle;
 import org.opensourcephysics.tools.ResourceLoader;
 
 import com.xuggle.xuggler.ICodec;
@@ -208,7 +207,6 @@ public class XuggleVideoRecorder extends ScratchVideoRecorder {
    * @param pixelType the pixel type
    * @throws IOException
    */
-	@SuppressWarnings("deprecation")
 	private boolean openStream(IContainerFormat format, IPixelFormat.Type pixelType) 
 			throws IOException {
 		outContainer = IContainer.make();
@@ -217,21 +215,12 @@ public class XuggleVideoRecorder extends ScratchVideoRecorder {
 			return false;
 		}	
 		String typicalName = "typical."+videoType.getDefaultExtension(); //$NON-NLS-1$
-		// pig don't guess codec for AVI type, but instead specify one that actually works??
 		ICodec codec = ICodec.guessEncodingCodec(format, null, typicalName, null, ICodec.Type.CODEC_TYPE_VIDEO);
-    if (DiagnosticsForXuggle.getXuggleVersion().startsWith("3.4")) { //$NON-NLS-1$
-			outStream = outContainer.addNewStream(0);  // ver 3.4
-    }
-    else {
-			outStream = outContainer.addNewStream(codec); // ver 5.4    	
-    }
+		outStream = outContainer.addNewStream(0);
 				
 		outStreamCoder = outStream.getStreamCoder();	
-		outStreamCoder.setNumPicturesInGroupOfPictures(10);
-		
-    if (DiagnosticsForXuggle.getXuggleVersion().startsWith("3.4")) { //$NON-NLS-1$
-  		outStreamCoder.setCodec(codec);	 // ver 3.4 only
-    }
+		outStreamCoder.setNumPicturesInGroupOfPictures(10);		
+  	outStreamCoder.setCodec(codec);
 		outStreamCoder.setBitRate(250000);
 //		outStreamCoder.setBitRateTolerance(9000);	
 		outStreamCoder.setPixelType(pixelType);
@@ -265,16 +254,10 @@ public class XuggleVideoRecorder extends ScratchVideoRecorder {
 //			return false;
 //    }
 
-    if (DiagnosticsForXuggle.getXuggleVersion().startsWith("3.4")) { //$NON-NLS-1$
-    	if (outStreamCoder.open()<0) { // ver 3.4
-				OSPLog.finer("Xuggle could not open stream encoder"); //$NON-NLS-1$
-				return false;
-    	}
-    }
-    else if (outStreamCoder.open(null, null)<0) { // ver 5.4
+  	if (outStreamCoder.open()<0) {
 			OSPLog.finer("Xuggle could not open stream encoder"); //$NON-NLS-1$
 			return false;
-    }
+  	}
 	
 		if (outContainer.writeHeader()<0) {
 			OSPLog.finer("Xuggle could not write file header"); //$NON-NLS-1$
