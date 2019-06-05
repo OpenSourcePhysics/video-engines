@@ -398,6 +398,7 @@ public class XuggleVideo extends VideoAdapter {
    * @param fileName the video file name
    * @throws IOException
    */
+	@SuppressWarnings("deprecation")
 	private void load(String fileName) throws IOException {
     Resource res = ResourceLoader.getResource(fileName);
     if (res==null) {
@@ -576,7 +577,8 @@ public class XuggleVideo extends VideoAdapter {
    *
    * @throws IOException
    */
-  private void reload() throws IOException {
+  @SuppressWarnings("deprecation")
+	private void reload() throws IOException {
   	String url = container.getURL();
   	container.close();
 		videoCoder.close();

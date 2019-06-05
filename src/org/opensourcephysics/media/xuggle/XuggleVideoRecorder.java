@@ -207,6 +207,7 @@ public class XuggleVideoRecorder extends ScratchVideoRecorder {
    * @param pixelType the pixel type
    * @throws IOException
    */
+	@SuppressWarnings("deprecation")
 	private boolean openStream(IContainerFormat format, IPixelFormat.Type pixelType) 
 			throws IOException {
 		outContainer = IContainer.make();
