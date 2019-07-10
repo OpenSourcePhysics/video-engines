@@ -20,7 +20,7 @@
  * or view the license online at http://www.gnu.org/copyleft/gpl.html
  *
  * For additional information and documentation on Open Source Physics,
- * please see <http://www.opensourcephysics.org/>.
+ * please see <https://www.compadre.org/osp/>.
  */
 package org.opensourcephysics.media.xuggle;
 import java.beans.PropertyChangeEvent;
@@ -221,5 +221,5 @@ public class XuggleVideoType implements VideoType {
  * or view the license online at http://www.gnu.org/copyleft/gpl.html
  *
  * Copyright (c) 2017  The Open Source Physics project
- *                     http://www.opensourcephysics.org
+ *                     https://www.compadre.org/osp
  */

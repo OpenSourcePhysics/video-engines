@@ -20,7 +20,7 @@
  * or view the license online at http://www.gnu.org/copyleft/gpl.html
  *
  * For additional information and documentation on Open Source Physics,
- * please see <http://www.opensourcephysics.org/>.
+ * please see <https://www.compadre.org/osp/>.
  */
 package org.opensourcephysics.media.xuggle;
 
@@ -68,7 +68,7 @@ public class XuggleThumbnailTool extends MediaToolAdapter {
    */
   public static synchronized BufferedImage createThumbnailImage(Dimension dim, String pathToVideo) {
   	THUMBNAIL_TOOL.initialize(dim);
-  	String path = pathToVideo.startsWith("http:")? ResourceLoader.getURIPath(pathToVideo): pathToVideo; //$NON-NLS-1$
+  	String path = pathToVideo.startsWith("http")? ResourceLoader.getURIPath(pathToVideo): pathToVideo; //$NON-NLS-1$
     IMediaReader mediaReader = ToolFactory.makeReader(path);
     mediaReader.setBufferedImageTypeToGenerate(BufferedImage.TYPE_3BYTE_BGR);
     mediaReader.addListener(THUMBNAIL_TOOL);
