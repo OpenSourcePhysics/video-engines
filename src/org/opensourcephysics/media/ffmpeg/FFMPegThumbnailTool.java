@@ -20,7 +20,7 @@
  * or view the license online at http://www.gnu.org/copyleft/gpl.html
  *
  * For additional information and documentation on Open Source Physics,
- * please see <http://www.opensourcephysics.org/>.
+ * please see <https://www.compadre.org/osp/>.
  */
 package org.opensourcephysics.media.ffmpeg;
 
@@ -67,7 +67,7 @@ public class FFMPegThumbnailTool {
    */
   public static synchronized BufferedImage createThumbnailImage(Dimension dim, String pathToVideo) {
   	THUMBNAIL_TOOL.initialize(dim);
-  	String path = pathToVideo.startsWith("http:")? ResourceLoader.getURIPath(pathToVideo): pathToVideo; //$NON-NLS-1$
+  	String path = pathToVideo.startsWith("http")? ResourceLoader.getURIPath(pathToVideo): pathToVideo; //$NON-NLS-1$
   	THUMBNAIL_TOOL.finished = false;
   	FFMPegAnalyzer analyzer = null;
   	try {
