@@ -71,8 +71,12 @@ import com.xuggle.xuggler.video.IConverter;
  * uses FFMpeg as its video engine.
  */
 public class XuggleVideo extends VideoAdapter {
+
+	static {
+		XuggleThumbnailTool.start();
+	}
 	
-	IContainer container;
+  IContainer container;
   int streamIndex = -1;
   IStreamCoder videoCoder;
   IVideoResampler resampler;
@@ -99,7 +103,7 @@ public class XuggleVideo extends VideoAdapter {
    * @param fileName the name of the video file
    * @throws IOException
    */
-  public XuggleVideo(final String fileName) throws IOException {
+  public XuggleVideo() throws IOException {
     Frame[] frames = Frame.getFrames();
     for(int i = 0, n = frames.length; i<n; i++) {
        if (frames[i].getName().equals("Tracker")) { //$NON-NLS-1$
@@ -108,20 +112,23 @@ public class XuggleVideo extends VideoAdapter {
       	 break;
        }
     }
-    // timer to detect failures
-		failDetectTimer = new Timer(6000, new ActionListener() {
-      public void actionPerformed(ActionEvent e) {
-      	if (frame==prevFrame) {
-      		firePropertyChange("stalled", null, fileName); //$NON-NLS-1$
-      		failDetectTimer.stop();
-      	}
-      	prevFrame = frame;
-      }
-    });
-		failDetectTimer.setRepeats(true);
-    load(fileName);
   }
 
+  @Override
+  public void init(String fileName) throws IOException {
+	    // timer to detect failures
+			failDetectTimer = new Timer(6000, new ActionListener() {
+	      public void actionPerformed(ActionEvent e) {
+	      	if (frame==prevFrame) {
+	      		firePropertyChange("stalled", null, fileName); //$NON-NLS-1$
+	      		failDetectTimer.stop();
+	      	}
+	      	prevFrame = frame;
+	      }
+	    });
+			failDetectTimer.setRepeats(true);
+	    load(fileName);
+  }
   /**
    * Plays the video at the current rate. Overrides VideoAdapter method.
    */
@@ -966,7 +973,8 @@ public class XuggleVideo extends VideoAdapter {
       try {
       	String path = control.getString("path"); //$NON-NLS-1$
       	String ext = XML.getExtension(path);
-      	XuggleVideo video = new XuggleVideo(path);
+      	XuggleVideo video = new XuggleVideo();
+      	video.init(path);
         VideoType xuggleType = VideoIO.getVideoType(VideoIO.ENGINE_XUGGLE, ext);
         if (xuggleType!=null)
         	video.setProperty("video_type", xuggleType); //$NON-NLS-1$

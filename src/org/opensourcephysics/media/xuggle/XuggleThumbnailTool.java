@@ -56,9 +56,15 @@ public class XuggleThumbnailTool extends MediaToolAdapter {
 	private Dimension dim;
   
   /**
-   * "Starts" this tool--called by XuggleVideoType so minijar will include it
+   * "Starts" this tool so minijar will include it
+   * 
+   * BH: now called by XuggleVideoType creating this class using reflection.
    */
   public static void start() {}
+  
+  static {
+	  start();
+  }
   
   /**
    * Attempts to create a new thumbnail image.
