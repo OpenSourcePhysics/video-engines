@@ -51,6 +51,7 @@ import org.opensourcephysics.media.core.ImageCoordSystem;
 import org.opensourcephysics.media.core.VideoAdapter;
 import org.opensourcephysics.media.core.VideoIO;
 import org.opensourcephysics.media.core.VideoType;
+import org.opensourcephysics.media.mov.MovieVideoI;
 import org.opensourcephysics.tools.Resource;
 import org.opensourcephysics.tools.ResourceLoader;
 
@@ -70,7 +71,7 @@ import com.xuggle.xuggler.video.IConverter;
  * A class to display videos using the Xuggle library. Xuggle in turn
  * uses FFMpeg as its video engine.
  */
-public class XuggleVideo extends VideoAdapter {
+public class XuggleVideo extends VideoAdapter implements MovieVideoI {
 
 	static {
 		XuggleThumbnailTool.start();
@@ -324,6 +325,7 @@ public class XuggleVideo extends VideoAdapter {
    * 
    * @param smooth true to play smoothly
    */
+  @Override
   public void setSmoothPlay(boolean smooth) {
   	playSmoothly = smooth;
   }
@@ -333,6 +335,7 @@ public class XuggleVideo extends VideoAdapter {
    * 
    * @return true if playing smoothly
    */
+  @Override
   public boolean isSmoothPlay() {
   	return playSmoothly;
   }

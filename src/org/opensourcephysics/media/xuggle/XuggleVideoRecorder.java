@@ -40,6 +40,7 @@ import org.opensourcephysics.controls.OSPLog;
 import org.opensourcephysics.controls.XML;
 import org.opensourcephysics.media.core.ScratchVideoRecorder;
 import org.opensourcephysics.media.core.VideoFileFilter;
+import org.opensourcephysics.media.mov.MovieVideoType;
 import org.opensourcephysics.tools.ResourceLoader;
 
 import com.xuggle.xuggler.ICodec;
@@ -72,7 +73,7 @@ public class XuggleVideoRecorder extends ScratchVideoRecorder {
    * Constructs a XuggleVideoRecorder object.
 	 * @param type the video type
    */
-  public XuggleVideoRecorder(XuggleVideoType type) {
+  public XuggleVideoRecorder(MovieVideoType type) {
     super(type);
   }
 
