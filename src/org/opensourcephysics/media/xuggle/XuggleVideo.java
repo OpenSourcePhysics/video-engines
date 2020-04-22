@@ -67,7 +67,7 @@ import com.xuggle.xuggler.video.IConverter;
  * A class to display videos using the Xuggle library. Xuggle in turn uses
  * FFMpeg as its video engine.
  */
-public class XuggleVideo extends VideoAdapter implements MovieVideoI {
+public class XuggleVideo extends VideoAdapter implements XuggleVideoI {
 
 	static {
 		XuggleThumbnailTool.start();
