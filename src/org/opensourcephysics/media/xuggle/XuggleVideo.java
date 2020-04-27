@@ -30,6 +30,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.beans.PropertyChangeListener;
+import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.URL;
@@ -45,9 +46,12 @@ import org.opensourcephysics.controls.XML;
 import org.opensourcephysics.media.core.DoubleArray;
 import org.opensourcephysics.media.core.ImageCoordSystem;
 import org.opensourcephysics.media.core.VideoAdapter;
+import org.opensourcephysics.media.core.VideoFileFilter;
 import org.opensourcephysics.media.core.VideoIO;
 import org.opensourcephysics.media.core.VideoType;
-import org.opensourcephysics.media.mov.MovieVideoI;
+import org.opensourcephysics.media.mov.MovieFactory;
+import org.opensourcephysics.media.mov.MovieVideoType;
+import org.opensourcephysics.media.mov.PluginVideoI;
 import org.opensourcephysics.tools.Resource;
 import org.opensourcephysics.tools.ResourceLoader;
 
@@ -67,10 +71,79 @@ import com.xuggle.xuggler.video.IConverter;
  * A class to display videos using the Xuggle library. Xuggle in turn uses
  * FFMpeg as its video engine.
  */
-public class XuggleVideo extends VideoAdapter implements XuggleVideoI {
+public class XuggleVideo extends VideoAdapter implements PluginVideoI {
 
+	public static boolean registered;
+	
 	static {
 		XuggleThumbnailTool.start();
+		
+		// was XuggleIO's only static initializer
+		// Self-registers Xuggle video types with VideoIO class.
+		// Executes once only, via the static initializer of the class.
+		MovieFactory.addMovieVideoType(new MovieVideoType());
+
+		// add common video types 
+		for (String ext : VideoIO.VIDEO_EXTENSIONS) { // {"mov", "avi", "mp4"}
+			MovieVideoType movieType = VideoIO.getMovieType(ext);
+			// avi not recordable with xuggle
+			if (movieType == null)
+				continue;
+			if (ext.equals("avi")) { //$NON-NLS-1$
+				movieType.setRecordable(false);
+			}
+			VideoIO.addVideoType(movieType);
+			ResourceLoader.addExtractExtension(ext);
+		}
+
+		// add additional xuggle types
+		// FLV
+		VideoFileFilter filter = new VideoFileFilter("flv", new String[] { "flv" }); //$NON-NLS-1$ //$NON-NLS-2$
+		VideoIO.addVideoType(new MovieVideoType(filter));
+		ResourceLoader.addExtractExtension("flv"); //$NON-NLS-1$
+		// WMV
+		filter = new VideoFileFilter("asf", new String[] { "wmv" }); //$NON-NLS-1$ //$NON-NLS-2$
+		VideoIO.addVideoType(new MovieVideoType(filter));
+		ResourceLoader.addExtractExtension("wmv"); //$NON-NLS-1$
+		// DV
+		filter = new VideoFileFilter("dv", new String[] { "dv" }); //$NON-NLS-1$ //$NON-NLS-2$
+		MovieVideoType vidType = new MovieVideoType(filter);
+		vidType.setRecordable(false);
+		VideoIO.addVideoType(vidType);
+		ResourceLoader.addExtractExtension("dv"); //$NON-NLS-1$
+		// MTS
+		filter = new VideoFileFilter("mts", new String[] { "mts" }); //$NON-NLS-1$ //$NON-NLS-2$
+		vidType = new MovieVideoType(filter);
+		vidType.setRecordable(false);
+		VideoIO.addVideoType(vidType);
+		ResourceLoader.addExtractExtension("mts"); //$NON-NLS-1$
+		// M2TS
+		filter = new VideoFileFilter("m2ts", new String[] { "m2ts" }); //$NON-NLS-1$ //$NON-NLS-2$
+		vidType = new MovieVideoType(filter);
+		vidType.setRecordable(false);
+		VideoIO.addVideoType(vidType);
+		ResourceLoader.addExtractExtension("m2ts"); //$NON-NLS-1$
+		// MPG
+		filter = new VideoFileFilter("mpg", new String[] { "mpg" }); //$NON-NLS-1$ //$NON-NLS-2$
+		vidType = new MovieVideoType(filter);
+		vidType.setRecordable(false);
+		VideoIO.addVideoType(vidType);
+		ResourceLoader.addExtractExtension("mpg"); //$NON-NLS-1$
+		// MOD
+		filter = new VideoFileFilter("mod", new String[] { "mod" }); //$NON-NLS-1$ //$NON-NLS-2$
+		vidType = new MovieVideoType(filter);
+		vidType.setRecordable(false);
+		VideoIO.addVideoType(vidType);
+		ResourceLoader.addExtractExtension("mod"); //$NON-NLS-1$
+		// OGG
+		filter = new VideoFileFilter("ogg", new String[] { "ogg" }); //$NON-NLS-1$ //$NON-NLS-2$
+		vidType = new MovieVideoType(filter);
+		vidType.setRecordable(false);
+		VideoIO.addVideoType(vidType);
+		ResourceLoader.addExtractExtension("ogg"); //$NON-NLS-1$
+		ResourceLoader.addExtractExtension("mod"); //$NON-NLS-1$
+		// WEBM unsupported by Xuggle
+		registered = true;
 	}
 
 	IContainer container;
@@ -101,6 +174,30 @@ public class XuggleVideo extends VideoAdapter implements XuggleVideoI {
 	 * @throws IOException
 	 */
 	public XuggleVideo() throws IOException {
+	}
+
+	public Object getProperty(String name) {
+		switch (name) {
+		case "version":
+			return Double.valueOf(DiagnosticsForXuggle.guessXuggleVersion());
+		default:
+			if (name.startsWith("about:")) {
+				name = name.substring(name.indexOf(":") + 1);
+				DiagnosticsForXuggle.aboutXuggle(name);
+				return null;
+			}
+			if (name.startsWith("copyJars:")) {
+				name = name.substring(name.indexOf(":") + 1);
+				return Boolean.valueOf(DiagnosticsForXuggle.copyXuggleJarsTo(new File(name)));
+			}
+			return super.getProperty(name);
+		}
+	}
+	
+	@Override
+	public void init(String fileName) throws IOException {
+		if (fileName == null)
+			return;
 		Frame[] frames = Frame.getFrames();
 		for (int i = 0, n = frames.length; i < n; i++) {
 			if (frames[i].getName().equals("Tracker")) { //$NON-NLS-1$
@@ -109,10 +206,6 @@ public class XuggleVideo extends VideoAdapter implements XuggleVideoI {
 				break;
 			}
 		}
-	}
-
-	@Override
-	public void init(String fileName) throws IOException {
 		// timer to detect failures
 		failDetectTimer = new Timer(6000, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -939,11 +1032,18 @@ public class XuggleVideo extends VideoAdapter implements XuggleVideoI {
 			XuggleVideo video = new XuggleVideo();
 			video.init(path);
 			String ext = XML.getExtension(path);
-			VideoType xuggleType = VideoIO.getVideoType(VideoIO.ENGINE_XUGGLE, ext);
+			VideoType xuggleType = VideoIO.getVideoType(MovieFactory.ENGINE_XUGGLE, ext);
 			if (xuggleType != null)
 				video.setProperty("video_type", xuggleType); //$NON-NLS-1$
 			return video;
 		}
 	}
+	
+
+	@Override
+	public String getName() {
+		return "Xuggle";
+	}
+
 
 }
