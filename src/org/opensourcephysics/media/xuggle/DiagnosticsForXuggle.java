@@ -77,7 +77,7 @@ public class DiagnosticsForXuggle extends Diagnostics {
 	 */
 	public static void aboutXuggle() {
 
-		int status = getStatusCode();
+		int status = getStatusCode(true);
 
 		if (OSPLog.getLevelValue() <= Level.CONFIG.intValue()) {
 			// log XUGGLE_HOME and PATH environment variables
@@ -331,7 +331,7 @@ public class DiagnosticsForXuggle extends Diagnostics {
 	 * 
 	 * @return status code
 	 */
-	public static int getStatusCode() {
+	public static int getStatusCode(boolean allow0) {
 		codeBaseJars = getXuggleJarFiles(codeBase);
 		javaExtensionJars = getJavaExtensionJars();
 		pathEnvironment = OSPRuntime.isWindows() ? "Path" //$NON-NLS-1$
@@ -339,7 +339,7 @@ public class DiagnosticsForXuggle extends Diagnostics {
 		pathValue = System.getenv(pathEnvironment);
 
 		// return 0 if working correctly
-		if (VideoIO.getMovieType(null) != null)
+		if (allow0 && VideoIO.getMovieType(null) != null)
 			return 0;
 
 		// return 8 if Xuggle version 5.4 is installed
@@ -579,7 +579,7 @@ public class DiagnosticsForXuggle extends Diagnostics {
 	 */
 	public static String getXuggleVersion() {
 		String xuggleVersion = XuggleRes.getString("Xuggle.Dialog.Unknown"); //$NON-NLS-1$
-		int status = getStatusCode();
+		int status = getStatusCode(true);
 		if (status == 0) { // xuggle working correctly
 			try {
 				String name = "com.xuggle.xuggler.Version"; //$NON-NLS-1$
