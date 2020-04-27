@@ -181,6 +181,10 @@ public class XuggleVideo extends VideoAdapter implements PluginVideoI {
 		case "version":
 			return Double.valueOf(DiagnosticsForXuggle.guessXuggleVersion());
 		default:
+			if (name.startsWith("xuggle_res:")) {
+				name = name.substring(name.indexOf(":") + 1);
+				return XuggleRes.getString(name);
+			}
 			if (name.startsWith("about:")) {
 				name = name.substring(name.indexOf(":") + 1);
 				DiagnosticsForXuggle.aboutXuggle(name);
