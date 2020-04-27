@@ -14,7 +14,7 @@ import org.opensourcephysics.display.OSPRuntime;
 public class XuggleRes {
 	// static fields
 	// BH keeping this simple by leaving the resources in their old place.
-	static final String BUNDLE_NAME = "org.opensourcephysics.resources.tools.xuggle"; //$NON-NLS-1$
+	static final String BUNDLE_NAME = "org.opensourcephysics.resources.xuggle.xuggle"; //$NON-NLS-1$
 	static Locale resourceLocale = Locale.ENGLISH;
 	static ResourceBundle res = ResourceBundle.getBundle(BUNDLE_NAME, resourceLocale);
 
