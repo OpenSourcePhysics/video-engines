@@ -80,9 +80,12 @@ public class XuggleVideo extends VideoAdapter implements PluginVideoI {
 		if (MovieFactory.hasVideoEngine()) {
 			XuggleThumbnailTool.start();
 
-			// was XuggleIO's only static initializer
+			// all of the following was XuggleIO's only static initializer
 			// Self-registers Xuggle video types with VideoIO class.
 			// Executes once only, via the static initializer of the class.
+
+			// BH not clear what this does? Fails fast if MovieFactory cannot ensure that Xuggle is available?
+			
 			MovieFactory.addMovieVideoType(new XuggleMovieVideoType());
 
 			for (String ext : VideoIO.VIDEO_EXTENSIONS) { // {"mov", "avi", "mp4"}
@@ -141,7 +144,6 @@ public class XuggleVideo extends VideoAdapter implements PluginVideoI {
 			vidType.setRecordable(false);
 			VideoIO.addVideoType(vidType);
 			ResourceLoader.addExtractExtension("ogg"); //$NON-NLS-1$
-			ResourceLoader.addExtractExtension("mod"); //$NON-NLS-1$
 			// WEBM unsupported by Xuggle
 		}
 		registered = true;
