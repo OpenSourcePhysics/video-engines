@@ -89,15 +89,13 @@ public class XuggleVideo extends VideoAdapter implements PluginVideoI {
 			MovieFactory.addMovieVideoType(new XuggleMovieVideoType());
 
 			for (String ext : VideoIO.VIDEO_EXTENSIONS) { // {"mov", "avi", "mp4"}
-				MovieVideoType movieType = VideoIO.getMovieType(ext);
-				// avi not recordable with xuggle
-				if (movieType == null)
-					continue;
+				VideoFileFilter filter = new VideoFileFilter(ext, new String[] {ext}); //$NON-NLS-1$ //$NON-NLS-2$
+				MovieVideoType movieType = new XuggleMovieVideoType(filter);
 				if (ext.equals("avi")) { //$NON-NLS-1$
-					movieType.setRecordable(false);
-				}
+					movieType.setRecordable(false); // AVI not recordable by Xuggle
+				}				
 				VideoIO.addVideoType(movieType);
-				ResourceLoader.addExtractExtension(ext);
+				ResourceLoader.addExtractExtension(ext);		
 			}
 
 			// FLV
