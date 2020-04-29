@@ -74,74 +74,46 @@ import com.xuggle.xuggler.video.IConverter;
 public class XuggleVideo extends VideoAdapter implements PluginVideoI {
 
 	public static boolean registered;
-	
+	public static final String[][] RECORDABLE_EXTENSIONS = { 
+			{"mov", "mov"},
+			{"flv", "flv"},
+			{"mp4", "mp4"},
+			{"wmv", "asf"} };
+	public static final String[] NONRECORDABLE_EXTENSIONS = { 
+			"avi", 
+			"mts",
+			"m2ts",
+			"mpg",
+			"mod",
+			"ogg",
+			"dv" };
+
 	static {
-		// add common video types
+		// Registers Xuggle video types with VideoIO class.
+		// Executes once only, via the static initializer of the class.
 		if (MovieFactory.hasVideoEngine()) {
 			XuggleThumbnailTool.start();
 
-			// all of the following was XuggleIO's only static initializer
-			// Self-registers Xuggle video types with VideoIO class.
-			// Executes once only, via the static initializer of the class.
+			// BH not clear what this does? Fails fast if MovieFactory cannot ensure that
+			// Xuggle is available?
 
-			// BH not clear what this does? Fails fast if MovieFactory cannot ensure that Xuggle is available?
-			
 			MovieFactory.addMovieVideoType(new XuggleMovieVideoType());
 
-			for (String ext : VideoIO.VIDEO_EXTENSIONS) { // {"mov", "avi", "mp4"}
-				VideoFileFilter filter = new VideoFileFilter(ext, new String[] {ext}); //$NON-NLS-1$ //$NON-NLS-2$
+			for (String[] ext : RECORDABLE_EXTENSIONS) {
+				VideoFileFilter filter = new VideoFileFilter(ext[1], new String[] { ext[0] }); // $NON-NLS-1$ //$NON-NLS-2$
 				MovieVideoType movieType = new XuggleMovieVideoType(filter);
-				if (ext.equals("avi")) { //$NON-NLS-1$
-					movieType.setRecordable(false); // AVI not recordable by Xuggle
-				}				
 				VideoIO.addVideoType(movieType);
-				ResourceLoader.addExtractExtension(ext);		
+				ResourceLoader.addExtractExtension(ext[0]);
 			}
 
-			// FLV
-			VideoFileFilter filter = new VideoFileFilter("flv", new String[] { "flv" }); //$NON-NLS-1$ //$NON-NLS-2$
-			VideoIO.addVideoType(new XuggleMovieVideoType(filter));
-			ResourceLoader.addExtractExtension("flv"); //$NON-NLS-1$
-			// WMV
-			filter = new VideoFileFilter("asf", new String[] { "wmv" }); //$NON-NLS-1$ //$NON-NLS-2$
-			VideoIO.addVideoType(new XuggleMovieVideoType(filter));
-			ResourceLoader.addExtractExtension("wmv"); //$NON-NLS-1$
-			// DV
-			filter = new VideoFileFilter("dv", new String[] { "dv" }); //$NON-NLS-1$ //$NON-NLS-2$
-			MovieVideoType vidType = new XuggleMovieVideoType(filter);
-			vidType.setRecordable(false);
-			VideoIO.addVideoType(vidType);
-			ResourceLoader.addExtractExtension("dv"); //$NON-NLS-1$
-			// MTS
-			filter = new VideoFileFilter("mts", new String[] { "mts" }); //$NON-NLS-1$ //$NON-NLS-2$
-			vidType = new XuggleMovieVideoType(filter);
-			vidType.setRecordable(false);
-			VideoIO.addVideoType(vidType);
-			ResourceLoader.addExtractExtension("mts"); //$NON-NLS-1$
-			// M2TS
-			filter = new VideoFileFilter("m2ts", new String[] { "m2ts" }); //$NON-NLS-1$ //$NON-NLS-2$
-			vidType = new XuggleMovieVideoType(filter);
-			vidType.setRecordable(false);
-			VideoIO.addVideoType(vidType);
-			ResourceLoader.addExtractExtension("m2ts"); //$NON-NLS-1$
-			// MPG
-			filter = new VideoFileFilter("mpg", new String[] { "mpg" }); //$NON-NLS-1$ //$NON-NLS-2$
-			vidType = new XuggleMovieVideoType(filter);
-			vidType.setRecordable(false);
-			VideoIO.addVideoType(vidType);
-			ResourceLoader.addExtractExtension("mpg"); //$NON-NLS-1$
-			// MOD
-			filter = new VideoFileFilter("mod", new String[] { "mod" }); //$NON-NLS-1$ //$NON-NLS-2$
-			vidType = new XuggleMovieVideoType(filter);
-			vidType.setRecordable(false);
-			VideoIO.addVideoType(vidType);
-			ResourceLoader.addExtractExtension("mod"); //$NON-NLS-1$
-			// OGG
-			filter = new VideoFileFilter("ogg", new String[] { "ogg" }); //$NON-NLS-1$ //$NON-NLS-2$
-			vidType = new XuggleMovieVideoType(filter);
-			vidType.setRecordable(false);
-			VideoIO.addVideoType(vidType);
-			ResourceLoader.addExtractExtension("ogg"); //$NON-NLS-1$
+			for (String ext : NONRECORDABLE_EXTENSIONS) {
+				VideoFileFilter filter = new VideoFileFilter(ext, new String[] { ext }); // $NON-NLS-1$ //$NON-NLS-2$
+				MovieVideoType movieType = new XuggleMovieVideoType(filter);
+				movieType.setRecordable(false);
+				VideoIO.addVideoType(movieType);
+				ResourceLoader.addExtractExtension(ext);
+			}
+
 			// WEBM unsupported by Xuggle
 		}
 		registered = true;
@@ -184,7 +156,7 @@ public class XuggleVideo extends VideoAdapter implements PluginVideoI {
 			return getName();
 		case "version":
 			int statusCode = DiagnosticsForXuggle.getStatusCode(false);
-			if (statusCode != -1)  {
+			if (statusCode != -1) {
 				if (!notifiedStatus) {
 					OSPLog.warning("DiagnosticsForXuggle returns status code " + statusCode);
 					notifiedStatus = true;
@@ -209,7 +181,7 @@ public class XuggleVideo extends VideoAdapter implements PluginVideoI {
 			return super.getProperty(name);
 		}
 	}
-	
+
 	@Override
 	public void init(String fileName) throws IOException {
 		if (fileName == null)
@@ -797,8 +769,8 @@ public class XuggleVideo extends VideoAdapter implements PluginVideoI {
 			resetContainer();
 			return packet;
 		}
-		if (delta < 0 && container.seekKeyFrame(streamIndex, timestamp, timestamp, timestamp,
-				IContainer.SEEK_FLAG_BACKWARDS) >= 0) {
+		if (delta < 0
+				&& container.seekKeyFrame(streamIndex, timestamp, timestamp, timestamp, IContainer.SEEK_FLAG_BACKWARDS) >= 0) {
 			while (container.readNextPacket(packet) >= 0) {
 				if (isKeyPacket(packet) && isVideoPacket(packet) && packet.getTimeStamp() == timestamp) {
 					return packet;
@@ -1054,12 +1026,10 @@ public class XuggleVideo extends VideoAdapter implements PluginVideoI {
 			return video;
 		}
 	}
-	
 
 	@Override
 	public String getName() {
 		return "Xuggle";
 	}
-
 
 }
