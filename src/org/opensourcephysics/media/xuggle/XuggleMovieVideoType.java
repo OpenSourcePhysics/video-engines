@@ -24,8 +24,13 @@
  * please see <https://www.compadre.org/osp/>.
  */
 package org.opensourcephysics.media.xuggle;
+import java.io.IOException;
+
+import org.opensourcephysics.controls.OSPLog;
 import org.opensourcephysics.media.core.MediaRes;
+import org.opensourcephysics.media.core.Video;
 import org.opensourcephysics.media.core.VideoFileFilter;
+import org.opensourcephysics.media.core.VideoRecorder;
 import org.opensourcephysics.media.mov.MovieVideoType;
 
 /**
@@ -62,6 +67,35 @@ public class XuggleMovieVideoType extends MovieVideoType {
 	  String type = super.getDefaultExtension();
 	  return (type == null ? MediaRes.getString("XuggleVideoType.Description") : type);  //$NON-NLS-1$
   }
+  
+  /**
+   * Opens a named video as a XuggleVideo. Overrrides MovieVideoType.
+   *
+   * @param name the name of the video
+   * @return a new Xuggle video
+   */
+  @Override
+  public Video getVideo(String name) {
+    try {
+    	XuggleVideo video = new XuggleVideo();
+			video.init(name);
+      video.setProperty("video_type", this); //$NON-NLS-1$
+      return video;
+    } catch(IOException ex) {
+    	OSPLog.fine(getDescription()+": "+ex.getMessage()); //$NON-NLS-1$
+      return null;
+    }
+  }
+
+  /**
+   * Gets a Xuggle video recorder.
+   *
+   * @return the video recorder
+   */
+  public VideoRecorder getRecorder() {
+  	return new XuggleVideoRecorder(this);  	
+  }
+
 
 }
 

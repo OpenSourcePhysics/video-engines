@@ -30,7 +30,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.beans.PropertyChangeListener;
-import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.URL;
@@ -92,31 +91,29 @@ public class XuggleVideo extends VideoAdapter implements PluginVideoI {
 	static {
 		// Registers Xuggle video types with VideoIO class.
 		// Executes once only, via the static initializer of the class.
-		if (MovieFactory.hasVideoEngine()) {
-			XuggleThumbnailTool.start();
+		XuggleThumbnailTool.start();
 
-			// BH not clear what this does? Fails fast if MovieFactory cannot ensure that
-			// Xuggle is available?
+		// BH not clear what this does? Fails fast if MovieFactory cannot ensure that
+		// Xuggle is available?
 
-			MovieFactory.addMovieVideoType(new XuggleMovieVideoType());
+		MovieFactory.addMovieVideoType(new XuggleMovieVideoType());
 
-			for (String[] ext : RECORDABLE_EXTENSIONS) {
-				VideoFileFilter filter = new VideoFileFilter(ext[1], new String[] { ext[0] }); // $NON-NLS-1$ //$NON-NLS-2$
-				MovieVideoType movieType = new XuggleMovieVideoType(filter);
-				VideoIO.addVideoType(movieType);
-				ResourceLoader.addExtractExtension(ext[0]);
-			}
-
-			for (String ext : NONRECORDABLE_EXTENSIONS) {
-				VideoFileFilter filter = new VideoFileFilter(ext, new String[] { ext }); // $NON-NLS-1$ //$NON-NLS-2$
-				MovieVideoType movieType = new XuggleMovieVideoType(filter);
-				movieType.setRecordable(false);
-				VideoIO.addVideoType(movieType);
-				ResourceLoader.addExtractExtension(ext);
-			}
-
-			// WEBM unsupported by Xuggle
+		for (String[] ext : RECORDABLE_EXTENSIONS) {
+			VideoFileFilter filter = new VideoFileFilter(ext[1], new String[] { ext[0] }); // $NON-NLS-1$ 
+			VideoType vidType = new XuggleMovieVideoType(filter);
+			VideoIO.addVideoType(vidType);
+			ResourceLoader.addExtractExtension(ext[0]);
 		}
+
+		for (String ext : NONRECORDABLE_EXTENSIONS) {
+			VideoFileFilter filter = new VideoFileFilter(ext, new String[] { ext }); // $NON-NLS-1$ 
+			MovieVideoType movieType = new XuggleMovieVideoType(filter);
+			movieType.setRecordable(false);
+			VideoIO.addVideoType(movieType);
+			ResourceLoader.addExtractExtension(ext);
+		}
+
+		// WEBM unsupported by Xuggle
 		registered = true;
 	}
 
@@ -140,7 +137,7 @@ public class XuggleVideo extends VideoAdapter implements PluginVideoI {
 	private boolean playSmoothly = true;
 	private int frame, prevFrame;
 	private Timer failDetectTimer;
-	private static boolean notifiedStatus;
+//	private static boolean notifiedStatus;
 
 	/**
 	 * Creates a XuggleVideo and loads a video file specified by name
@@ -151,37 +148,37 @@ public class XuggleVideo extends VideoAdapter implements PluginVideoI {
 	public XuggleVideo() throws IOException {
 	}
 
-	public Object getProperty(String name) {
-		switch (name) {
-		case "name":
-			return getName();
-		case "version":
-			int statusCode = DiagnosticsForXuggle.getStatusCode(false);
-			if (statusCode != -1) {
-				if (!notifiedStatus) {
-					OSPLog.warning("DiagnosticsForXuggle returns status code " + statusCode);
-					notifiedStatus = true;
-				}
-				return Double.valueOf(0);
-			}
-			return Double.valueOf(DiagnosticsForXuggle.guessXuggleVersion());
-		default:
-			if (name.startsWith("xuggle_res:")) {
-				name = name.substring(name.indexOf(":") + 1);
-				return XuggleRes.getString(name);
-			}
-			if (name.startsWith("about:")) {
-				name = name.substring(name.indexOf(":") + 1);
-				DiagnosticsForXuggle.aboutXuggle(name);
-				return null;
-			}
-			if (name.startsWith("copyJars:")) {
-				name = name.substring(name.indexOf(":") + 1);
-				return Boolean.valueOf(DiagnosticsForXuggle.copyXuggleJarsTo(new File(name)));
-			}
-			return super.getProperty(name);
-		}
-	}
+//	public Object getProperty(String name) {
+//		switch (name) {
+//		case "name":
+//			return getName();
+////		case "version":
+////			int statusCode = DiagnosticsForXuggle.getStatusCode(false);
+////			if (statusCode != -1) {
+////				if (!notifiedStatus) {
+////					OSPLog.warning("DiagnosticsForXuggle returns status code " + statusCode);
+////					notifiedStatus = true;
+////				}
+////				return Double.valueOf(0);
+////			}
+////			return Double.valueOf(DiagnosticsForXuggle.guessXuggleVersion());
+//		default:
+//			if (name.startsWith("xuggle_res:")) {
+//				name = name.substring(name.indexOf(":") + 1);
+//				return XuggleRes.getString(name);
+//			}
+//			if (name.startsWith("about:")) {
+//				name = name.substring(name.indexOf(":") + 1);
+//				DiagnosticsForXuggle.aboutXuggle(name);
+//				return null;
+//			}
+//			if (name.startsWith("copyJars:")) {
+//				name = name.substring(name.indexOf(":") + 1);
+//				return Boolean.valueOf(DiagnosticsForXuggle.copyXuggleJarsTo(new File(name)));
+//			}
+//			return super.getProperty(name);
+//		}
+//	}
 
 	@Override
 	public void init(String fileName) throws IOException {
@@ -190,8 +187,8 @@ public class XuggleVideo extends VideoAdapter implements PluginVideoI {
 		Frame[] frames = Frame.getFrames();
 		for (int i = 0, n = frames.length; i < n; i++) {
 			if (frames[i].getName().equals("Tracker")) { //$NON-NLS-1$
-				addPropertyChangeListener(PROPERTY_VIDEO_PROGRESS, (PropertyChangeListener) frames[i]); //$NON-NLS-1$
-				addPropertyChangeListener(PROPERTY_VIDEO_STALLED, (PropertyChangeListener) frames[i]); //$NON-NLS-1$
+				addPropertyChangeListener(PROPERTY_VIDEO_PROGRESS, (PropertyChangeListener) frames[i]); 
+				addPropertyChangeListener(PROPERTY_VIDEO_STALLED, (PropertyChangeListener) frames[i]); 
 				break;
 			}
 		}
@@ -199,7 +196,7 @@ public class XuggleVideo extends VideoAdapter implements PluginVideoI {
 		failDetectTimer = new Timer(6000, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				if (frame == prevFrame) {
-					firePropertyChange(PROPERTY_VIDEO_STALLED, null, fileName); //$NON-NLS-1$
+					firePropertyChange(PROPERTY_VIDEO_STALLED, null, fileName); 
 					failDetectTimer.stop();
 				}
 				prevFrame = frame;
@@ -218,7 +215,7 @@ public class XuggleVideo extends VideoAdapter implements PluginVideoI {
 		}
 		int n = getFrameNumber() + 1;
 		playing = true;
-		support.firePropertyChange(Video.PROPERTY_VIDEO_PLAYING, null, new Boolean(true)); //$NON-NLS-1$
+		support.firePropertyChange(Video.PROPERTY_VIDEO_PLAYING, null, new Boolean(true)); 
 		startPlayingAtFrame(n);
 	}
 
@@ -227,7 +224,7 @@ public class XuggleVideo extends VideoAdapter implements PluginVideoI {
 	 */
 	public void stop() {
 		playing = false;
-		support.firePropertyChange(Video.PROPERTY_VIDEO_PLAYING, null, new Boolean(false)); //$NON-NLS-1$
+		support.firePropertyChange(Video.PROPERTY_VIDEO_PLAYING, null, new Boolean(false)); 
 	}
 
 	/**
@@ -244,7 +241,7 @@ public class XuggleVideo extends VideoAdapter implements PluginVideoI {
 			rawImage = bi;
 			isValidImage = false;
 			isValidFilteredImage = false;
-			firePropertyChange(Video.PROPERTY_VIDEO_FRAMENUMBER, null, new Integer(getFrameNumber())); //$NON-NLS-1$
+			firePropertyChange(Video.PROPERTY_VIDEO_FRAMENUMBER, null, new Integer(getFrameNumber())); 
 			if (isPlaying()) {
 				Runnable runner = new Runnable() {
 					public void run() {
@@ -566,14 +563,14 @@ public class XuggleVideo extends VideoAdapter implements PluginVideoI {
 		long keyTimeStamp = Long.MIN_VALUE;
 		long startTimeStamp = Long.MIN_VALUE;
 		ArrayList<Double> seconds = new ArrayList<Double>();
-		firePropertyChange(PROPERTY_VIDEO_PROGRESS, fileName, 0); //$NON-NLS-1$
+		firePropertyChange(PROPERTY_VIDEO_PROGRESS, fileName, 0); 
 		frame = prevFrame = 0;
 		failDetectTimer.start();
 		// step thru container and find all video frames
 		while (tempContainer.readNextPacket(tempPacket) >= 0) {
 			if (VideoIO.isCanceled()) {
 				failDetectTimer.stop();
-				firePropertyChange(PROPERTY_VIDEO_PROGRESS, fileName, null); //$NON-NLS-1$
+				firePropertyChange(PROPERTY_VIDEO_PROGRESS, fileName, null); 
 				// clean up temporary objects
 				tempCoder.close();
 				tempCoder.delete();
@@ -604,7 +601,7 @@ public class XuggleVideo extends VideoAdapter implements PluginVideoI {
 						frameTimeStamps.put(frame, tempPacket.getTimeStamp());
 						seconds.add((tempPacket.getTimeStamp() - startTimeStamp) * timebase.getValue());
 						keyTimeStamps.put(frame, keyTimeStamp);
-						firePropertyChange(PROPERTY_VIDEO_PROGRESS, fileName, frame); //$NON-NLS-1$
+						firePropertyChange(PROPERTY_VIDEO_PROGRESS, fileName, frame); 
 						frame++;
 					}
 				}
@@ -621,7 +618,7 @@ public class XuggleVideo extends VideoAdapter implements PluginVideoI {
 
 		// throw IOException if no frames were loaded
 		if (frameTimeStamps.size() == 0) {
-			firePropertyChange(PROPERTY_VIDEO_PROGRESS, fileName, null); //$NON-NLS-1$
+			firePropertyChange(PROPERTY_VIDEO_PROGRESS, fileName, null); 
 			failDetectTimer.stop();
 			dispose();
 			throw new IOException("packets loaded but no complete picture"); //$NON-NLS-1$
@@ -650,7 +647,7 @@ public class XuggleVideo extends VideoAdapter implements PluginVideoI {
 					break;
 			}
 		}
-		firePropertyChange(PROPERTY_VIDEO_PROGRESS, fileName, null); //$NON-NLS-1$
+		firePropertyChange(PROPERTY_VIDEO_PROGRESS, fileName, null); 
 		failDetectTimer.stop();
 		if (img == null) {
 			dispose();

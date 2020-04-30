@@ -77,7 +77,7 @@ public class DiagnosticsForXuggle extends Diagnostics {
 	 */
 	public static void aboutXuggle() {
 
-		int status = getStatusCode(true);
+		int status = getStatusCode();
 
 		if (OSPLog.getLevelValue() <= Level.CONFIG.intValue()) {
 			// log XUGGLE_HOME and PATH environment variables
@@ -319,19 +319,20 @@ public class DiagnosticsForXuggle extends Diagnostics {
 
 	/**
 	 * Gets a status code that identifies the current state of the Xuggle video
-	 * engine. Codes are: 0 working correctly 1 not installed (XUGGLE_HOME==null, no
-	 * xuggle jars in code base and extensions) 2 can't find xuggle home
-	 * (XUGGLE_HOME==null but xuggle jars found in code base and/or extensions) 3
-	 * XUGGLE_HOME incomplete: missing xuggle jars in XUGGLE_HOME/share/java/jars 4
-	 * XUGGLE_HOME OK, but incorrect "PATH", "DYLD_LIBRARY_PATH", or
-	 * "LD_LIBRARY_PATH" 5 XUGGLE_HOME OK, but no xuggle jars in code base or
-	 * extensions 6 XUGGLE_HOME OK, but mismatched xuggle versions in code base or
-	 * extensions 7 XUGGLE_HOME OK, but wrong Java VM bitness 8 unsupported Xuggle
-	 * 5.4 installed -1 none of the above
+	 * engine. Codes are: 
+	 * 0 working correctly 
+	 * 1 not installed (XUGGLE_HOME==null, no xuggle jars in code base and extensions) 
+	 * 2 can't find xuggle home (XUGGLE_HOME==null but xuggle jars found in code base and/or extensions) 
+	 * 3 XUGGLE_HOME incomplete: missing xuggle jars in XUGGLE_HOME/share/java/jars 
+	 * 4 XUGGLE_HOME OK, but incorrect "PATH", "DYLD_LIBRARY_PATH", or "LD_LIBRARY_PATH" 
+	 * 5 XUGGLE_HOME OK, but no xuggle jars in code base or extensions 
+	 * 6 XUGGLE_HOME OK, but mismatched xuggle versions in code base or extensions 
+	 * 7 XUGGLE_HOME OK, but wrong Java VM bitness 
+	 * -1 none of the above
 	 * 
 	 * @return status code
 	 */
-	public static int getStatusCode(boolean allow0) {
+	public static int getStatusCode() {
 		codeBaseJars = getXuggleJarFiles(codeBase);
 		javaExtensionJars = getJavaExtensionJars();
 		pathEnvironment = OSPRuntime.isWindows() ? "Path" //$NON-NLS-1$
@@ -339,13 +340,13 @@ public class DiagnosticsForXuggle extends Diagnostics {
 		pathValue = System.getenv(pathEnvironment);
 
 		// return 0 if working correctly
-		if (allow0 && VideoIO.getMovieType(null) != null)
+		if (VideoIO.getVideoType("xuggle", "mp4")!=null)
 			return 0;
 
-		// return 8 if Xuggle version 5.4 is installed
-		if (guessXuggleVersion() == 5.4)
-			return 8;
-
+//		// return 8 if Xuggle version 5.4 is installed
+//		if (guessXuggleVersion() == 5.4)
+//			return 8;
+//
 		boolean completeExt = javaExtensionJars[0] != null;
 		for (int i = 1; i < javaExtensionJars.length; i++) {
 			completeExt = completeExt && javaExtensionJars[i] != null;
@@ -579,7 +580,7 @@ public class DiagnosticsForXuggle extends Diagnostics {
 	 */
 	public static String getXuggleVersion() {
 		String xuggleVersion = XuggleRes.getString("Xuggle.Dialog.Unknown"); //$NON-NLS-1$
-		int status = getStatusCode(true);
+		int status = getStatusCode();
 		if (status == 0) { // xuggle working correctly
 			try {
 				String name = "com.xuggle.xuggler.Version"; //$NON-NLS-1$
@@ -593,21 +594,21 @@ public class DiagnosticsForXuggle extends Diagnostics {
 		return xuggleVersion;
 	}
 
-	/**
-	 * Returns the best guess Xuggle version as a double based on file size. For an
-	 * exact version number, use DiagnosticsForXuggle (requires Xuggle to be
-	 * running).
-	 * 
-	 * @return 3.4 or 5.4 if xuggle installed, otherwise 0.0
-	 */
-	public static double guessXuggleVersion() {
-		File xuggleJar = getXuggleJar();
-		if (xuggleJar != null) {
-			return xuggleJar.length() < XUGGLE_54_FILE_LENGTH ? 3.4 : 5.4;
-		}
-		return 0;
-	}
-
+//	/**
+//	 * Returns the best guess Xuggle version as a double based on file size. For an
+//	 * exact version number, use DiagnosticsForXuggle (requires Xuggle to be
+//	 * running).
+//	 * 
+//	 * @return 3.4 or 5.4 if xuggle installed, otherwise 0.0
+//	 */
+//	public static double guessXuggleVersion() {
+//		File xuggleJar = getXuggleJar();
+//		if (xuggleJar != null) {
+//			return xuggleJar.length() < XUGGLE_54_FILE_LENGTH ? 3.4 : 5.4;
+//		}
+//		return 0;
+//	}
+//
 	/**
 	 * Gets the xuggle-xuggler.jar from the xuggleHome directory, if it exists.
 	 *
