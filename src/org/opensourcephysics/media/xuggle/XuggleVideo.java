@@ -45,6 +45,7 @@ import org.opensourcephysics.controls.OSPLog;
 import org.opensourcephysics.controls.XML;
 import org.opensourcephysics.media.core.DoubleArray;
 import org.opensourcephysics.media.core.ImageCoordSystem;
+import org.opensourcephysics.media.core.Video;
 import org.opensourcephysics.media.core.VideoAdapter;
 import org.opensourcephysics.media.core.VideoFileFilter;
 import org.opensourcephysics.media.core.VideoIO;
@@ -189,8 +190,8 @@ public class XuggleVideo extends VideoAdapter implements PluginVideoI {
 		Frame[] frames = Frame.getFrames();
 		for (int i = 0, n = frames.length; i < n; i++) {
 			if (frames[i].getName().equals("Tracker")) { //$NON-NLS-1$
-				addPropertyChangeListener("progress", (PropertyChangeListener) frames[i]); //$NON-NLS-1$
-				addPropertyChangeListener("stalled", (PropertyChangeListener) frames[i]); //$NON-NLS-1$
+				addPropertyChangeListener(PROPERTY_VIDEO_PROGRESS, (PropertyChangeListener) frames[i]); //$NON-NLS-1$
+				addPropertyChangeListener(PROPERTY_VIDEO_STALLED, (PropertyChangeListener) frames[i]); //$NON-NLS-1$
 				break;
 			}
 		}
@@ -198,7 +199,7 @@ public class XuggleVideo extends VideoAdapter implements PluginVideoI {
 		failDetectTimer = new Timer(6000, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				if (frame == prevFrame) {
-					firePropertyChange("stalled", null, fileName); //$NON-NLS-1$
+					firePropertyChange(PROPERTY_VIDEO_STALLED, null, fileName); //$NON-NLS-1$
 					failDetectTimer.stop();
 				}
 				prevFrame = frame;
@@ -217,7 +218,7 @@ public class XuggleVideo extends VideoAdapter implements PluginVideoI {
 		}
 		int n = getFrameNumber() + 1;
 		playing = true;
-		support.firePropertyChange("playing", null, new Boolean(true)); //$NON-NLS-1$
+		support.firePropertyChange(Video.PROPERTY_VIDEO_PLAYING, null, new Boolean(true)); //$NON-NLS-1$
 		startPlayingAtFrame(n);
 	}
 
@@ -226,7 +227,7 @@ public class XuggleVideo extends VideoAdapter implements PluginVideoI {
 	 */
 	public void stop() {
 		playing = false;
-		support.firePropertyChange("playing", null, new Boolean(false)); //$NON-NLS-1$
+		support.firePropertyChange(Video.PROPERTY_VIDEO_PLAYING, null, new Boolean(false)); //$NON-NLS-1$
 	}
 
 	/**
@@ -243,7 +244,7 @@ public class XuggleVideo extends VideoAdapter implements PluginVideoI {
 			rawImage = bi;
 			isValidImage = false;
 			isValidFilteredImage = false;
-			firePropertyChange("framenumber", null, new Integer(getFrameNumber())); //$NON-NLS-1$
+			firePropertyChange(Video.PROPERTY_VIDEO_FRAMENUMBER, null, new Integer(getFrameNumber())); //$NON-NLS-1$
 			if (isPlaying()) {
 				Runnable runner = new Runnable() {
 					public void run() {
@@ -565,14 +566,14 @@ public class XuggleVideo extends VideoAdapter implements PluginVideoI {
 		long keyTimeStamp = Long.MIN_VALUE;
 		long startTimeStamp = Long.MIN_VALUE;
 		ArrayList<Double> seconds = new ArrayList<Double>();
-		firePropertyChange("progress", fileName, 0); //$NON-NLS-1$
+		firePropertyChange(PROPERTY_VIDEO_PROGRESS, fileName, 0); //$NON-NLS-1$
 		frame = prevFrame = 0;
 		failDetectTimer.start();
 		// step thru container and find all video frames
 		while (tempContainer.readNextPacket(tempPacket) >= 0) {
 			if (VideoIO.isCanceled()) {
 				failDetectTimer.stop();
-				firePropertyChange("progress", fileName, null); //$NON-NLS-1$
+				firePropertyChange(PROPERTY_VIDEO_PROGRESS, fileName, null); //$NON-NLS-1$
 				// clean up temporary objects
 				tempCoder.close();
 				tempCoder.delete();
@@ -603,7 +604,7 @@ public class XuggleVideo extends VideoAdapter implements PluginVideoI {
 						frameTimeStamps.put(frame, tempPacket.getTimeStamp());
 						seconds.add((tempPacket.getTimeStamp() - startTimeStamp) * timebase.getValue());
 						keyTimeStamps.put(frame, keyTimeStamp);
-						firePropertyChange("progress", fileName, frame); //$NON-NLS-1$
+						firePropertyChange(PROPERTY_VIDEO_PROGRESS, fileName, frame); //$NON-NLS-1$
 						frame++;
 					}
 				}
@@ -620,7 +621,7 @@ public class XuggleVideo extends VideoAdapter implements PluginVideoI {
 
 		// throw IOException if no frames were loaded
 		if (frameTimeStamps.size() == 0) {
-			firePropertyChange("progress", fileName, null); //$NON-NLS-1$
+			firePropertyChange(PROPERTY_VIDEO_PROGRESS, fileName, null); //$NON-NLS-1$
 			failDetectTimer.stop();
 			dispose();
 			throw new IOException("packets loaded but no complete picture"); //$NON-NLS-1$
@@ -649,7 +650,7 @@ public class XuggleVideo extends VideoAdapter implements PluginVideoI {
 					break;
 			}
 		}
-		firePropertyChange("progress", fileName, null); //$NON-NLS-1$
+		firePropertyChange(PROPERTY_VIDEO_PROGRESS, fileName, null); //$NON-NLS-1$
 		failDetectTimer.stop();
 		if (img == null) {
 			dispose();
