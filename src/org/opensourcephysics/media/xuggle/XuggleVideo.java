@@ -75,23 +75,24 @@ public class XuggleVideo extends VideoAdapter implements PluginVideoI {
 
 	public static boolean registered;
 	public static final String[][] RECORDABLE_EXTENSIONS = { 
-			{"mov", "mov"},
-			{"flv", "flv"},
-			{"mp4", "mp4"},
-			{"wmv", "asf"} };
+			{"mov", "mov"}, //$NON-NLS-1$ //$NON-NLS-2$
+			{"flv", "flv"}, //$NON-NLS-1$ //$NON-NLS-2$
+			{"mp4", "mp4"}, //$NON-NLS-1$ //$NON-NLS-2$
+			{"wmv", "asf"} }; //$NON-NLS-1$ //$NON-NLS-2$
 	public static final String[] NONRECORDABLE_EXTENSIONS = { 
-			"avi", 
-			"mts",
-			"m2ts",
-			"mpg",
-			"mod",
-			"ogg",
-			"dv" };
+			"avi",  //$NON-NLS-1$
+			"mts", //$NON-NLS-1$
+			"m2ts", //$NON-NLS-1$
+			"mpg", //$NON-NLS-1$
+			"mod", //$NON-NLS-1$
+			"ogg", //$NON-NLS-1$
+			"dv" }; //$NON-NLS-1$
 
 	static {
-		// Registers Xuggle video types with VideoIO class.
-		// Executes once only, via the static initializer of the class.
 		XuggleThumbnailTool.start();
+		
+		// Registers Xuggle video types with VideoIO class.
+		// Executes once only, via this static initializer.
 
 		// BH not clear what this does? Fails fast if MovieFactory cannot ensure that
 		// Xuggle is available?
@@ -113,7 +114,6 @@ public class XuggleVideo extends VideoAdapter implements PluginVideoI {
 			ResourceLoader.addExtractExtension(ext);
 		}
 
-		// WEBM unsupported by Xuggle
 		registered = true;
 	}
 
@@ -1027,7 +1027,7 @@ public class XuggleVideo extends VideoAdapter implements PluginVideoI {
 
 	@Override
 	public String getName() {
-		return "Xuggle";
+		return "Xuggle"; //$NON-NLS-1$
 	}
 
 }
