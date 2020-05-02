@@ -94,11 +94,6 @@ public class XuggleVideo extends VideoAdapter implements PluginVideoI {
 		// Registers Xuggle video types with VideoIO class.
 		// Executes once only, via this static initializer.
 
-		// BH not clear what this does? Fails fast if MovieFactory cannot ensure that
-		// Xuggle is available?
-
-		MovieFactory.addMovieVideoType(new XuggleMovieVideoType());
-
 		for (String[] ext : RECORDABLE_EXTENSIONS) {
 			VideoFileFilter filter = new VideoFileFilter(ext[1], new String[] { ext[0] }); // $NON-NLS-1$ 
 			VideoType vidType = new XuggleMovieVideoType(filter);
@@ -1026,8 +1021,8 @@ public class XuggleVideo extends VideoAdapter implements PluginVideoI {
 	}
 
 	@Override
-	public String getName() {
-		return "Xuggle"; //$NON-NLS-1$
+	public String getTypeName() {
+		return MovieFactory.ENGINE_XUGGLE; //$NON-NLS-1$
 	}
 
 }
