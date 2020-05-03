@@ -32,6 +32,7 @@ import org.opensourcephysics.media.core.MediaRes;
 import org.opensourcephysics.media.core.Video;
 import org.opensourcephysics.media.core.VideoFileFilter;
 import org.opensourcephysics.media.core.VideoRecorder;
+import org.opensourcephysics.media.mov.MovieFactory;
 import org.opensourcephysics.media.mov.MovieVideoType;
 
 /**
@@ -111,6 +112,9 @@ public class XuggleMovieVideoType extends MovieVideoType {
   	return new XuggleVideoRecorder(this);  	
   }
 
+  public String getTypeName() {
+		return MovieFactory.ENGINE_XUGGLE; //$NON-NLS-1$
+  }
 
 }
 

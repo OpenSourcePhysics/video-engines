@@ -19,6 +19,7 @@ import org.opensourcephysics.controls.OSPLog;
 import org.opensourcephysics.controls.XML;
 import org.opensourcephysics.display.OSPRuntime;
 import org.opensourcephysics.media.core.VideoIO;
+import org.opensourcephysics.media.mov.MovieFactory;
 import org.opensourcephysics.tools.Diagnostics;
 import org.opensourcephysics.tools.JREFinder;
 
@@ -340,7 +341,7 @@ public class DiagnosticsForXuggle extends Diagnostics {
 		pathValue = System.getenv(pathEnvironment);
 
 		// return 0 if working correctly
-		if (VideoIO.getVideoType("xuggle", "mp4")!=null)
+		if (VideoIO.getVideoType(MovieFactory.ENGINE_XUGGLE, "mp4")!=null)
 			return 0;
 
 //		// return 8 if Xuggle version 5.4 is installed
