@@ -51,7 +51,7 @@ import org.opensourcephysics.media.core.VideoIO;
 import org.opensourcephysics.media.core.VideoType;
 import org.opensourcephysics.media.mov.MovieFactory;
 import org.opensourcephysics.media.mov.MovieVideoType;
-import org.opensourcephysics.media.mov.PluginVideoI;
+import org.opensourcephysics.media.mov.SmoothPlayable;
 import org.opensourcephysics.tools.Resource;
 import org.opensourcephysics.tools.ResourceLoader;
 
@@ -71,7 +71,7 @@ import com.xuggle.xuggler.video.IConverter;
  * A class to display videos using the Xuggle library. Xuggle in turn uses
  * FFMpeg as its video engine.
  */
-public class XuggleVideo extends VideoAdapter implements PluginVideoI {
+public class XuggleVideo extends VideoAdapter implements SmoothPlayable {
 
 	public static boolean registered;
 	public static final String[][] RECORDABLE_EXTENSIONS = { 
@@ -132,50 +132,19 @@ public class XuggleVideo extends VideoAdapter implements PluginVideoI {
 	private boolean playSmoothly = true;
 	private int frame, prevFrame;
 	private Timer failDetectTimer;
-//	private static boolean notifiedStatus;
 
 	/**
-	 * Creates a XuggleVideo and loads a video file specified by name
+	 * Creates an empty XuggleVideo
+	 */
+	public XuggleVideo() {
+	}
+
+	/**
+	 * Initializes this video and loads a video file specified by name
 	 *
 	 * @param fileName the name of the video file
 	 * @throws IOException
 	 */
-	public XuggleVideo() throws IOException {
-	}
-
-//	public Object getProperty(String name) {
-//		switch (name) {
-//		case "name":
-//			return getName();
-////		case "version":
-////			int statusCode = DiagnosticsForXuggle.getStatusCode(false);
-////			if (statusCode != -1) {
-////				if (!notifiedStatus) {
-////					OSPLog.warning("DiagnosticsForXuggle returns status code " + statusCode);
-////					notifiedStatus = true;
-////				}
-////				return Double.valueOf(0);
-////			}
-////			return Double.valueOf(DiagnosticsForXuggle.guessXuggleVersion());
-//		default:
-//			if (name.startsWith("xuggle_res:")) {
-//				name = name.substring(name.indexOf(":") + 1);
-//				return XuggleRes.getString(name);
-//			}
-//			if (name.startsWith("about:")) {
-//				name = name.substring(name.indexOf(":") + 1);
-//				DiagnosticsForXuggle.aboutXuggle(name);
-//				return null;
-//			}
-//			if (name.startsWith("copyJars:")) {
-//				name = name.substring(name.indexOf(":") + 1);
-//				return Boolean.valueOf(DiagnosticsForXuggle.copyXuggleJarsTo(new File(name)));
-//			}
-//			return super.getProperty(name);
-//		}
-//	}
-
-	@Override
 	public void init(String fileName) throws IOException {
 		if (fileName == null)
 			return;
