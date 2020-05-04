@@ -91,17 +91,22 @@ public class XuggleMovieVideoType extends MovieVideoType {
    * @return a new Xuggle video
    */
   @Override
-  public Video getVideo(String name) {
+  public Video getVideo(String path) {
+    return getVideo(path, null);
+  }
+
+	@Override
+	public Video getVideo(String path, String basePath) {
     try {
     	XuggleVideo video = new XuggleVideo();
-			video.init(name);
+			video.init(path);
       video.setProperty("video_type", this); //$NON-NLS-1$
       return video;
     } catch(IOException ex) {
     	OSPLog.fine(getDescription()+": "+ex.getMessage()); //$NON-NLS-1$
       return null;
     }
-  }
+	}
 
   /**
    * Gets a Xuggle video recorder.
