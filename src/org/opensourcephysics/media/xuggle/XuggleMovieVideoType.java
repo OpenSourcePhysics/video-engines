@@ -91,8 +91,8 @@ public class XuggleMovieVideoType extends MovieVideoType {
    * @return a new Xuggle video
    */
 	@Override
-	public Video getVideo(String path, String basePath) {
-	  return getVideo(name, null);
+	public Video getVideo(String path) {
+	  return getVideo(path, null);
   }
 
 	@Override
