@@ -90,16 +90,16 @@ public class XuggleMovieVideoType extends MovieVideoType {
    * @param name the name of the video
    * @return a new Xuggle video
    */
-  @Override
-  public Video getVideo(String path) {
-    return getVideo(path, null);
+	@Override
+	public Video getVideo(String path, String basePath) {
+	  return getVideo(name, null);
   }
 
 	@Override
-	public Video getVideo(String path, String basePath) {
+	public Video getVideo(String name, String basePath) {
     try {
     	XuggleVideo video = new XuggleVideo();
-			video.init(path);
+			video.init(name);
       video.setProperty("video_type", this); //$NON-NLS-1$
       return video;
     } catch(IOException ex) {
