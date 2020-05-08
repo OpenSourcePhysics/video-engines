@@ -93,8 +93,8 @@ public boolean isType(Video video) {
    * @return a new Xuggle video
    */
 	@Override
-    public Video getVideo(String name) {
-	  return getVideo(name, null);
+	public Video getVideo(String path) {
+	  return getVideo(path, null);
   }
 
 	@Override
