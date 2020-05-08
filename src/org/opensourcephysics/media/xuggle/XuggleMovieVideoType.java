@@ -65,7 +65,8 @@ public class XuggleMovieVideoType extends MovieVideoType {
    *
    * @return a description
    */
-  public String getDescription() {
+  @Override
+public String getDescription() {
   	if (singleTypeFilter!=null)
   		return singleTypeFilter.getDescription();
     return MediaRes.getString("XuggleVideoType.Description"); //$NON-NLS-1$
@@ -77,7 +78,8 @@ public class XuggleMovieVideoType extends MovieVideoType {
    * @param video the video
    * @return true if the video is this type
    */
-  public boolean isType(Video video) {
+  @Override
+public boolean isType(Video video) {
   	if (!video.getClass().equals(XuggleVideo.class)) return false;
   	if (singleTypeFilter==null) return true;
   	String name = (String)video.getProperty("name"); //$NON-NLS-1$
@@ -90,8 +92,8 @@ public class XuggleMovieVideoType extends MovieVideoType {
    * @param name the name of the video
    * @return a new Xuggle video
    */
-  @Override
-  public Video getVideo(String name) {
+	@Override
+    public Video getVideo(String name) {
 	  return getVideo(name, null);
   }
 
@@ -113,12 +115,14 @@ public class XuggleMovieVideoType extends MovieVideoType {
    *
    * @return the video recorder
    */
-  public VideoRecorder getRecorder() {
+  @Override
+public VideoRecorder getRecorder() {
   	return new XuggleVideoRecorder(this);  	
   }
 
-  public String getTypeName() {
-		return MovieFactory.ENGINE_XUGGLE; //$NON-NLS-1$
+  @Override
+public String getTypeName() {
+		return MovieFactory.ENGINE_XUGGLE; 
   }
 
 }

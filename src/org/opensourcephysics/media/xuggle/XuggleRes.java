@@ -4,6 +4,7 @@ import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 import org.opensourcephysics.display.OSPRuntime;
+import org.opensourcephysics.tools.ResourceLoader;
 
 /**
  * XuggleRes provides access to string resources for Xuggle Diagnostics.
@@ -16,7 +17,7 @@ public class XuggleRes {
 	// BH keeping this simple by leaving the resources in their old place.
 	static final String BUNDLE_NAME = "org.opensourcephysics.resources.xuggle.xuggle"; //$NON-NLS-1$
 	static Locale resourceLocale = Locale.ENGLISH;
-	static ResourceBundle res = ResourceBundle.getBundle(BUNDLE_NAME, resourceLocale);
+	static ResourceBundle res = ResourceLoader.getBundle(BUNDLE_NAME, resourceLocale);
 
 	static {
 		String language = Locale.getDefault().getLanguage();
@@ -27,7 +28,7 @@ public class XuggleRes {
 				break;
 			}
 		}
-		res = ResourceBundle.getBundle(BUNDLE_NAME, resourceLocale);
+		res = ResourceLoader.getBundle(BUNDLE_NAME, resourceLocale);
 	}
 
 	/**
@@ -72,7 +73,7 @@ public class XuggleRes {
 		}
 		resourceLocale = loc;
 		// get the new resource bundle
-		res = ResourceBundle.getBundle(BUNDLE_NAME, resourceLocale); // $NON-NLS-1$
+		res = ResourceLoader.getBundle(BUNDLE_NAME, resourceLocale); // $NON-NLS-1$
 	}
 
 }

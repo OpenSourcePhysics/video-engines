@@ -341,7 +341,7 @@ public class DiagnosticsForXuggle extends Diagnostics {
 		pathValue = System.getenv(pathEnvironment);
 
 		// return 0 if working correctly
-		if (VideoIO.getVideoType(MovieFactory.ENGINE_XUGGLE, "mp4")!=null)
+		if (VideoIO.getVideoType(MovieFactory.ENGINE_XUGGLE, "mp4")!=null) //$NON-NLS-1$
 			return 0;
 
 //		// return 8 if Xuggle version 5.4 is installed

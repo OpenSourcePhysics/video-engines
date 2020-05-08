@@ -158,6 +158,7 @@ public class XuggleVideo extends VideoAdapter implements SmoothPlayable {
 		}
 		// timer to detect failures
 		failDetectTimer = new Timer(6000, new ActionListener() {
+			@Override
 			public void actionPerformed(ActionEvent e) {
 				if (frame == prevFrame) {
 					firePropertyChange(PROPERTY_VIDEO_STALLED, null, fileName); 
@@ -173,6 +174,7 @@ public class XuggleVideo extends VideoAdapter implements SmoothPlayable {
 	/**
 	 * Plays the video at the current rate. Overrides VideoAdapter method.
 	 */
+	@Override
 	public void play() {
 		if (getFrameCount() == 1) {
 			return;
@@ -186,6 +188,7 @@ public class XuggleVideo extends VideoAdapter implements SmoothPlayable {
 	/**
 	 * Stops the video.
 	 */
+	@Override
 	public void stop() {
 		playing = false;
 		support.firePropertyChange(Video.PROPERTY_VIDEO_PLAYING, null, new Boolean(false)); 
@@ -196,6 +199,7 @@ public class XuggleVideo extends VideoAdapter implements SmoothPlayable {
 	 *
 	 * @param n the desired frame number
 	 */
+	@Override
 	public void setFrameNumber(int n) {
 		if (n == getFrameNumber())
 			return;
@@ -208,6 +212,7 @@ public class XuggleVideo extends VideoAdapter implements SmoothPlayable {
 			firePropertyChange(Video.PROPERTY_VIDEO_FRAMENUMBER, null, new Integer(getFrameNumber())); 
 			if (isPlaying()) {
 				Runnable runner = new Runnable() {
+					@Override
 					public void run() {
 						continuePlaying();
 					}
@@ -223,6 +228,7 @@ public class XuggleVideo extends VideoAdapter implements SmoothPlayable {
 	 * @param n the frame number
 	 * @return the start time of the frame in milliseconds, or -1 if not known
 	 */
+	@Override
 	public double getFrameTime(int n) {
 		if ((n >= startTimes.length) || (n < 0)) {
 			return -1;
@@ -235,6 +241,7 @@ public class XuggleVideo extends VideoAdapter implements SmoothPlayable {
 	 *
 	 * @return the current time in milliseconds, or -1 if not known
 	 */
+	@Override
 	public double getTime() {
 		return getFrameTime(getFrameNumber());
 	}
@@ -244,6 +251,7 @@ public class XuggleVideo extends VideoAdapter implements SmoothPlayable {
 	 *
 	 * @param millis the desired time in milliseconds
 	 */
+	@Override
 	public void setTime(double millis) {
 		millis = Math.abs(millis);
 		for (int i = 0; i < startTimes.length; i++) {
@@ -260,6 +268,7 @@ public class XuggleVideo extends VideoAdapter implements SmoothPlayable {
 	 *
 	 * @return the start time in milliseconds, or -1 if not known
 	 */
+	@Override
 	public double getStartTime() {
 		return getFrameTime(getStartFrameNumber());
 	}
@@ -269,6 +278,7 @@ public class XuggleVideo extends VideoAdapter implements SmoothPlayable {
 	 *
 	 * @param millis the desired start time in milliseconds
 	 */
+	@Override
 	public void setStartTime(double millis) {
 		millis = Math.abs(millis);
 		for (int i = 0; i < startTimes.length; i++) {
@@ -285,6 +295,7 @@ public class XuggleVideo extends VideoAdapter implements SmoothPlayable {
 	 *
 	 * @return the end time in milliseconds, or -1 if not known
 	 */
+	@Override
 	public double getEndTime() {
 		int n = getEndFrameNumber();
 		if (n < getFrameCount() - 1)
@@ -297,6 +308,7 @@ public class XuggleVideo extends VideoAdapter implements SmoothPlayable {
 	 *
 	 * @param millis the desired end time in milliseconds
 	 */
+	@Override
 	public void setEndTime(double millis) {
 		millis = Math.abs(millis);
 		millis = Math.min(getDuration(), millis);
@@ -314,6 +326,7 @@ public class XuggleVideo extends VideoAdapter implements SmoothPlayable {
 	 *
 	 * @return the duration of the video in milliseconds, or -1 if not known
 	 */
+	@Override
 	public double getDuration() {
 		int n = getFrameCount() - 1;
 		if (n == 0)
@@ -328,6 +341,7 @@ public class XuggleVideo extends VideoAdapter implements SmoothPlayable {
 	 *
 	 * @param rate the relative play rate.
 	 */
+	@Override
 	public void setRate(double rate) {
 		super.setRate(rate);
 		if (isPlaying()) {
@@ -338,6 +352,7 @@ public class XuggleVideo extends VideoAdapter implements SmoothPlayable {
 	/**
 	 * Disposes of this video.
 	 */
+	@Override
 	public void dispose() {
 		super.dispose();
 		if (videoCoder != null) {
@@ -991,7 +1006,7 @@ public class XuggleVideo extends VideoAdapter implements SmoothPlayable {
 
 	@Override
 	public String getTypeName() {
-		return MovieFactory.ENGINE_XUGGLE; //$NON-NLS-1$
+		return MovieFactory.ENGINE_XUGGLE; 
 	}
 
 }
