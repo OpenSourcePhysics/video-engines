@@ -18,7 +18,11 @@ public class XuggleRes {
 	// BH keeping this simple by leaving the resources in their old place.
 	static final String BUNDLE_NAME = "org.opensourcephysics.resources.xuggle.xuggle"; //$NON-NLS-1$
 	static Locale resourceLocale = Locale.ENGLISH;
+<<<<<<< HEAD
 	static Bundle res = ResourceLoader.getBundle(BUNDLE_NAME, resourceLocale);
+=======
+	static ResourceLoader.Bundle res = ResourceLoader.getBundle(BUNDLE_NAME, resourceLocale);
+>>>>>>> branch 'SwingJS' of https://github.com/OpenSourcePhysics/video-engines.git
 
 	static {
 		String language = Locale.getDefault().getLanguage();
