@@ -2,9 +2,10 @@ package org.opensourcephysics.media.xuggle;
 
 import java.util.Locale;
 import java.util.MissingResourceException;
-import java.util.ResourceBundle;
+
 import org.opensourcephysics.display.OSPRuntime;
 import org.opensourcephysics.tools.ResourceLoader;
+import org.opensourcephysics.tools.ResourceLoader.Bundle;
 
 /**
  * XuggleRes provides access to string resources for Xuggle Diagnostics.
@@ -17,7 +18,7 @@ public class XuggleRes {
 	// BH keeping this simple by leaving the resources in their old place.
 	static final String BUNDLE_NAME = "org.opensourcephysics.resources.xuggle.xuggle"; //$NON-NLS-1$
 	static Locale resourceLocale = Locale.ENGLISH;
-	static ResourceBundle res = ResourceLoader.getBundle(BUNDLE_NAME, resourceLocale);
+	static Bundle res = ResourceLoader.getBundle(BUNDLE_NAME, resourceLocale);
 
 	static {
 		String language = Locale.getDefault().getLanguage();

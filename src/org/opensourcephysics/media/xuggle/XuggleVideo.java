@@ -181,7 +181,7 @@ public class XuggleVideo extends VideoAdapter implements SmoothPlayable {
 		}
 		int n = getFrameNumber() + 1;
 		playing = true;
-		support.firePropertyChange(Video.PROPERTY_VIDEO_PLAYING, null, new Boolean(true)); 
+		firePropertyChange(Video.PROPERTY_VIDEO_PLAYING, null, new Boolean(true)); 
 		startPlayingAtFrame(n);
 	}
 
@@ -191,7 +191,7 @@ public class XuggleVideo extends VideoAdapter implements SmoothPlayable {
 	@Override
 	public void stop() {
 		playing = false;
-		support.firePropertyChange(Video.PROPERTY_VIDEO_PLAYING, null, new Boolean(false)); 
+		firePropertyChange(Video.PROPERTY_VIDEO_PLAYING, null, new Boolean(false)); 
 	}
 
 	/**
