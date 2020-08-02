@@ -609,8 +609,7 @@ public class XuggleVideo extends VideoAdapter {
     size = new Dimension(image.getWidth(), image.getHeight());
     refreshBufferedImage();
     // create coordinate system and relativeAspects
-    coords = new ImageCoordSystem(frameCount);
-    coords.addPropertyChangeListener(this);
+    coords = new ImageCoordSystem(frameCount, this);
     aspects = new DoubleArray(frameCount, 1);
   }
 

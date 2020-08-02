@@ -104,6 +104,8 @@ public class XuggleIO {
         ResourceLoader.addExtractExtension("ogg"); //$NON-NLS-1$
         ResourceLoader.addExtractExtension("mod"); //$NON-NLS-1$
       	// WEBM unsupported by Xuggle
+        // BH but see https://stackoverflow.com/questions/46630827/how-convert-webm-to-mp4-using-java
+        // and http://www.xuggle.com/downloads
       }
       catch (Exception ex) { // Xuggle not working
       	OSPLog.config("Xuggle exception: "+ex.toString()); //$NON-NLS-1$
