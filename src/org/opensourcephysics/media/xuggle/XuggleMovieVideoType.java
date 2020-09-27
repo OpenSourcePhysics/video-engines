@@ -28,6 +28,7 @@ import java.io.File;
 import java.io.IOException;
 
 import org.opensourcephysics.controls.OSPLog;
+import org.opensourcephysics.controls.XML;
 import org.opensourcephysics.media.core.MediaRes;
 import org.opensourcephysics.media.core.Video;
 import org.opensourcephysics.media.core.VideoFileFilter;
@@ -101,7 +102,7 @@ public boolean isType(Video video) {
 	public Video getVideo(String name, String basePath) {
     try {
     	XuggleVideo video = new XuggleVideo();
-			video.init(name);
+			video.init(XML.getResolvedPath(name, basePath));
       video.setProperty("video_type", this); //$NON-NLS-1$
       return video;
     } catch(IOException ex) {
