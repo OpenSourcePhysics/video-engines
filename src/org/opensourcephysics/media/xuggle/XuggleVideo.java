@@ -24,7 +24,6 @@
  */
 package org.opensourcephysics.media.xuggle;
 
-import java.awt.Dimension;
 import java.awt.Frame;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -89,11 +88,12 @@ public class XuggleVideo extends VideoAdapter implements SmoothPlayable {
 			"dv" }; //$NON-NLS-1$
 
 	static {
+		IContainer.make(); // throws exception if xuggle not available
+		
 		XuggleThumbnailTool.start();
 		
 		// Registers Xuggle video types with VideoIO class.
 		// Executes once only, via this static initializer.
-
 		for (String[] ext : RECORDABLE_EXTENSIONS) {
 			VideoFileFilter filter = new VideoFileFilter(ext[1], new String[] { ext[0] }); // $NON-NLS-1$ 
 			VideoType vidType = new XuggleMovieVideoType(filter);

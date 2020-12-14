@@ -19,9 +19,10 @@ import org.opensourcephysics.controls.OSPLog;
 import org.opensourcephysics.controls.XML;
 import org.opensourcephysics.display.OSPRuntime;
 import org.opensourcephysics.media.core.VideoIO;
-import org.opensourcephysics.media.mov.MovieFactory;
 import org.opensourcephysics.tools.Diagnostics;
 import org.opensourcephysics.tools.JREFinder;
+
+import com.xuggle.xuggler.IContainer;
 
 /**
  * Checks to see if Xuggle is installed and working.
@@ -340,9 +341,17 @@ public class DiagnosticsForXuggle extends Diagnostics {
 				: OSPRuntime.isMac() ? "DYLD_LIBRARY_PATH" : "LD_LIBRARY_PATH"; //$NON-NLS-1$ //$NON-NLS-2$
 		pathValue = System.getenv(pathEnvironment);
 
-		// return 0 if working correctly
-		if (VideoIO.getVideoType(MovieFactory.ENGINE_XUGGLE, "mp4")!=null) //$NON-NLS-1$
+		// return 0 if xuggle classes available
+		try {
+			IContainer.make(); // throws exception if xuggle not available
 			return 0;
+		} catch (Exception e) {
+		} catch (Error er) {
+		}
+
+		// DB this doesn't work until XuggleVideo class has been loaded
+//		if (VideoIO.getVideoType(MovieFactory.ENGINE_XUGGLE, "mp4")!=null) //$NON-NLS-1$
+//			return 0;
 
 //		// return 8 if Xuggle version 5.4 is installed
 //		if (guessXuggleVersion() == 5.4)
